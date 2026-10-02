@@ -1,0 +1,11 @@
+[
+  {
+    "id": "1790578980551-k5ncjcxl",
+    "username": "admin",
+    "name": "مدیر سیستم",
+    "passwordHash": "$2b$10$QzaB/EGNbdHZm7lnY0iCEup8fvfjn7lXnVA51cqjXyYpDPmvWumIy",
+    "role": "admin",
+    "createdAt": "2026-09-28T07:03:00.551Z",
+    "updatedAt": "2026-09-28T07:03:00.552Z"
+  }
+]

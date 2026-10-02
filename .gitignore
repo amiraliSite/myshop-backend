@@ -1,0 +1,24 @@
+# Node.js dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.development
+
+# User-uploaded files
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and operating-system files
+.vscode/
+.DS_Store
+Thumbs.db
+backend/node_modules/
+backend/.env
+backend/uploads/
+dist/

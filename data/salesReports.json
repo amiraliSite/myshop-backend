@@ -1,0 +1,263 @@
+[
+  {
+    "id": "1790926539395-vg16na",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeCode": "10003",
+    "representativeName": "رضا",
+    "representativeCity": "تهران",
+    "itemsCount": 1,
+    "totalItems": 4,
+    "totalAmount": 3800000,
+    "saleDate": "۱۴۰۵/۷/۱۰",
+    "saleDateJalali": "1405/07/10",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790651381907-te9vsjsd",
+        "productName": "روغن موتور 10W-40 چهار لیتری",
+        "quantity": 4,
+        "unitPrice": 950000,
+        "totalPrice": 3800000
+      }
+    ],
+    "createdAt": "2026-10-02T07:35:39.390Z",
+    "updatedAt": "2026-10-02T07:35:39.390Z"
+  },
+  {
+    "id": "1790833544760-ykpjpj",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeCode": "10003",
+    "representativeName": "رضا",
+    "representativeCity": "تهران",
+    "itemsCount": 1,
+    "totalItems": 9,
+    "totalAmount": 765000,
+    "saleDate": "۱۴۰۵/۷/۹",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790651381907-rrkb0cww",
+        "productName": "فیلتر روغن پراید",
+        "quantity": 9,
+        "unitPrice": 85000,
+        "totalPrice": 765000
+      }
+    ],
+    "createdAt": "2026-10-01T05:45:44.680Z",
+    "updatedAt": "2026-10-01T05:45:44.680Z"
+  },
+  {
+    "id": "1790761560813-wchraz",
+    "representativeId": "1790757938082-3vgh8aco",
+    "representativeCode": "11",
+    "representativeName": "z",
+    "representativeCity": "dc d vc",
+    "itemsCount": 1,
+    "totalItems": 4,
+    "totalAmount": 100000000,
+    "saleDate": "۱۴۰۵/۷/۸",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790757997195-brsretdn",
+        "productName": "تلویزیون سامسونگ 55 اینچ",
+        "quantity": 4,
+        "unitPrice": 25000000,
+        "totalPrice": 100000000
+      }
+    ],
+    "createdAt": "2026-09-30T09:46:00.808Z",
+    "updatedAt": "2026-09-30T09:46:00.808Z"
+  },
+  {
+    "id": "1790761254951-3zdr17",
+    "representativeId": "1790757938082-3vgh8aco",
+    "representativeCode": "11",
+    "representativeName": "z",
+    "representativeCity": "dc d vc",
+    "itemsCount": 1,
+    "totalItems": 5,
+    "totalAmount": 32500000,
+    "saleDate": "۱۴۰۵/۷/۸",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790757997201-mnv2mqnp",
+        "productName": "مایکروویو ال‌جی 25 لیتر",
+        "quantity": 5,
+        "unitPrice": 6500000,
+        "totalPrice": 32500000
+      }
+    ],
+    "createdAt": "2026-09-30T09:40:54.602Z",
+    "updatedAt": "2026-09-30T09:40:54.602Z"
+  },
+  {
+    "id": "1790758019157-t6xvww",
+    "representativeId": "1790757938082-3vgh8aco",
+    "representativeCode": "11",
+    "representativeName": "z",
+    "representativeCity": "dc d vc",
+    "itemsCount": 2,
+    "totalItems": 7,
+    "totalAmount": 235000000,
+    "saleDate": "۱۴۰۵/۷/۸",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790757997195-brsretdn",
+        "productName": "تلویزیون سامسونگ 55 اینچ",
+        "quantity": 6,
+        "unitPrice": 25000000,
+        "totalPrice": 150000000
+      },
+      {
+        "productId": "1790757997197-swro2b7b",
+        "productName": "لپ تاپ ایسوس ROG",
+        "quantity": 1,
+        "unitPrice": 85000000,
+        "totalPrice": 85000000
+      }
+    ],
+    "createdAt": "2026-09-30T08:46:59.147Z",
+    "updatedAt": "2026-09-30T08:46:59.147Z"
+  },
+  {
+    "id": "1790753057892-3moc8x",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeCode": "10003",
+    "representativeName": "رضا",
+    "representativeCity": "تهران",
+    "itemsCount": 1,
+    "totalItems": 8,
+    "totalAmount": 5200000,
+    "saleDate": "۱۴۰۵/۷/۸",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790651381907-72x4ujw6",
+        "productName": "بلبرینگ چرخ جلو پراید",
+        "quantity": 8,
+        "unitPrice": 650000,
+        "totalPrice": 5200000
+      }
+    ],
+    "createdAt": "2026-09-30T07:24:17.750Z",
+    "updatedAt": "2026-09-30T07:24:17.750Z"
+  },
+  {
+    "id": "1790752203841-gmnb9a",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeCode": "10003",
+    "representativeName": "رضا",
+    "representativeCity": "تهران",
+    "itemsCount": 1,
+    "totalItems": 1,
+    "totalAmount": 950000,
+    "saleDate": "۱۴۰۵/۷/۸",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790651381907-te9vsjsd",
+        "productName": "روغن موتور 10W-40 چهار لیتری",
+        "quantity": 1,
+        "unitPrice": 950000,
+        "totalPrice": 950000
+      }
+    ],
+    "createdAt": "2026-09-30T07:10:03.714Z",
+    "updatedAt": "2026-09-30T07:10:03.714Z"
+  },
+  {
+    "id": "1790691878620-6scj2a",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeCode": "10003",
+    "representativeName": "رضا",
+    "representativeCity": "تهران",
+    "itemsCount": 1,
+    "totalItems": 2,
+    "totalAmount": 170000,
+    "saleDate": "۱۴۰۵/۷/۷",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790651381907-rrkb0cww",
+        "productName": "فیلتر روغن پراید",
+        "quantity": 2,
+        "unitPrice": 85000,
+        "totalPrice": 170000
+      }
+    ],
+    "createdAt": "2026-09-29T14:24:38.455Z",
+    "updatedAt": "2026-09-29T14:24:38.455Z"
+  },
+  {
+    "id": "1790689755201-1ij91s",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeCode": "10003",
+    "representativeName": "رضا",
+    "representativeCity": "تهران",
+    "itemsCount": 1,
+    "totalItems": 1,
+    "totalAmount": 1350000,
+    "saleDate": "۱۴۰۵/۷/۷",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790651381907-k2s6xvvg",
+        "productName": "واتر پمپ پژو 405",
+        "quantity": 1,
+        "unitPrice": 1350000,
+        "totalPrice": 1350000
+      }
+    ],
+    "createdAt": "2026-09-29T13:49:15.180Z",
+    "updatedAt": "2026-09-29T13:49:15.180Z"
+  },
+  {
+    "id": "1790689515236-xan3eb",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeCode": "10003",
+    "representativeName": "رضا",
+    "representativeCity": "تهران",
+    "itemsCount": 1,
+    "totalItems": 5,
+    "totalAmount": 425000,
+    "saleDate": "۱۴۰۵/۷/۷",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790651381907-rrkb0cww",
+        "productName": "فیلتر روغن پراید",
+        "quantity": 5,
+        "unitPrice": 85000,
+        "totalPrice": 425000
+      }
+    ],
+    "createdAt": "2026-09-29T13:45:15.195Z",
+    "updatedAt": "2026-09-29T13:45:15.195Z"
+  },
+  {
+    "id": "1790596274891-kpq42f",
+    "representativeId": "4",
+    "representativeCode": "1112",
+    "representativeName": "aaaaa",
+    "representativeCity": "assadsz",
+    "itemsCount": 1,
+    "totalItems": 2,
+    "totalAmount": 19000000,
+    "saleDate": "۱۴۰۵/۷/۶",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1790583614197-6zyeviq8",
+        "productName": "میز ناهارخوری 6 نفره",
+        "quantity": 2,
+        "unitPrice": 9500000,
+        "totalPrice": 19000000
+      }
+    ],
+    "createdAt": "2026-09-28T11:51:14.382Z",
+    "updatedAt": "2026-09-28T11:51:14.382Z"
+  }
+]

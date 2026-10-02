@@ -1,17 +1,19 @@
 require('dotenv').config();
 
-
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-
 const {
   ensureDataFiles,
+  readRepresentatives,
+  readRepresentativeWarehouses,
+  readSalesReports,
 } = require('./helpers/jsonStorage');
 
+const authenticateToken = require('./middleware/auth.middleware');
 
 const authRouter = require('./routes/auth.routes');
 const productsRouter = require('./routes/products.routes');
@@ -26,19 +28,14 @@ const adminReturnRequestsRouter = require('./routes/adminReturnRequests.routes')
 const supportRequestsRouter = require('./routes/supportRequests');
 const adminSupportRequestsRouter = require('./routes/adminSupportRequests.routes');
 
-
 const app = express();
-
 
 const PORT = Number(process.env.PORT) || 5000;
 
-
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
-
 
 // اطمینان از وجود فایل‌های داده
 ensureDataFiles();
-
 
 // ساخت پوشهٔ آپلودها اگر وجود ندارد
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -47,7 +44,6 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   });
 }
 
-
 // پوشهٔ فایل‌های نمایندگان
 const REPRESENTATIVES_FILES_DIR = path.join(
   __dirname,
@@ -55,13 +51,11 @@ const REPRESENTATIVES_FILES_DIR = path.join(
   'representatives',
 );
 
-
 if (!fs.existsSync(REPRESENTATIVES_FILES_DIR)) {
   fs.mkdirSync(REPRESENTATIVES_FILES_DIR, {
     recursive: true,
   });
 }
-
 
 // ========== Middleware Cache-Control ==========
 // غیرفعال کردن کامل Cache برای همه درخواست‌ها
@@ -74,7 +68,6 @@ app.use((req, res, next) => {
 });
 // ===============================================
 
-
 // میدل‌ورها
 app.use(
   cors({
@@ -85,13 +78,11 @@ app.use(
   }),
 );
 
-
 app.use(
   express.json({
     limit: '10mb',
   }),
 );
-
 
 app.use(
   express.urlencoded({
@@ -100,9 +91,7 @@ app.use(
   }),
 );
 
-
 app.use('/uploads', express.static(UPLOADS_DIR));
-
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -113,7 +102,6 @@ app.get('/api/health', (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-
 
 // روت‌های API
 app.use('/api/auth', authRouter);
@@ -129,6 +117,45 @@ app.use('/api/admin/return-requests', adminReturnRequestsRouter);
 app.use('/api/support-requests', supportRequestsRouter);
 app.use('/api/admin/support-requests', adminSupportRequestsRouter);
 
+// ========== DEBUG: دانلود فایل‌های JSON ==========
+app.get(
+  '/api/debug/data-files',
+  authenticateToken,
+  (req, res) => {
+    try {
+      // فقط ادمین اجازه دارد
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'فقط ادمین اجازه دسترسی به این بخش را دارد.',
+        });
+      }
+
+      const representatives = readRepresentatives();
+      const warehouses = readRepresentativeWarehouses();
+      const sales = readSalesReports();
+
+      return res.json({
+        success: true,
+        data: {
+          representativesCount: representatives.length,
+          warehousesCount: warehouses.length,
+          salesCount: sales.length,
+          representatives,
+          warehouses,
+          sales,
+        },
+      });
+    } catch (error) {
+      console.error('خطا در خواندن فایل‌های JSON:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'خطا در خواندن داده‌ها.',
+      });
+    }
+  },
+);
+// ================================================
 
 // 404 برای مسیرهای تعریف‌نشده
 app.use((req, res) => {
@@ -140,11 +167,9 @@ app.use((req, res) => {
   });
 });
 
-
 // هندلر خطاهای سراسری
 app.use((error, _req, res, _next) => {
   console.error('❌ Server error:', error);
-
 
   if (error?.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
@@ -153,14 +178,12 @@ app.use((error, _req, res, _next) => {
     });
   }
 
-
   if (error?.name === 'MulterError') {
     return res.status(400).json({
       success: false,
       error: error.message || 'خطا در دریافت فایل ارسالی.',
     });
   }
-
 
   if (error?.message) {
     return res.status(400).json({
@@ -169,23 +192,19 @@ app.use((error, _req, res, _next) => {
     });
   }
 
-
   return res.status(500).json({
     success: false,
     error: 'خطای داخلی سرور رخ داد.',
   });
 });
 
-
 // گرفتن IPهای محلی برای نمایش در لاگ
 function getLocalIPs() {
   const interfaces = os.networkInterfaces();
   const ips = [];
 
-
   for (const interfaceList of Object.values(interfaces)) {
     if (!interfaceList) continue;
-
 
     for (const network of interfaceList) {
       const isIPv4 = network.family === 'IPv4';
@@ -194,22 +213,18 @@ function getLocalIPs() {
         network.address.startsWith('10.') ||
         network.address.startsWith('172.');
 
-
       if (isIPv4 && !network.internal && isPrivateNetwork) {
         ips.push(network.address);
       }
     }
   }
 
-
   return ips;
 }
-
 
 // شروع سرور
 app.listen(PORT, '0.0.0.0', () => {
   const ips = getLocalIPs();
-
 
   console.log('\n🚀 ====================================');
   console.log('✅ Main backend is running!');
@@ -232,7 +247,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`👤 My support requests: http://localhost:${PORT}/api/support-requests/mine`);
   console.log(`🛡️ Admin support requests: http://localhost:${PORT}/api/admin/support-requests`);
   console.log(`📁 Uploads: http://localhost:${PORT}/uploads`);
-
+  console.log(`🔍 Debug data: http://localhost:${PORT}/api/debug/data-files (admin only)`);
 
   if (ips.length > 0) {
     console.log('📱 Network addresses:');
@@ -240,7 +255,6 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log(`   http://${ip}:${PORT}/api`);
     });
   }
-
 
   console.log('🚀 ====================================\n');
 });

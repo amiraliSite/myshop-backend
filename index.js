@@ -13,7 +13,7 @@ const {
   readSalesReports,
 } = require('./helpers/jsonStorage');
 
-const authenticateToken = require('./middleware/auth.middleware');
+const { authenticateToken } = require('./middleware/auth.middleware');
 
 const authRouter = require('./routes/auth.routes');
 const productsRouter = require('./routes/products.routes');

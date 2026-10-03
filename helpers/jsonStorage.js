@@ -16,6 +16,7 @@ const FILES = {
   returnRequests: 'returnRequests.json',
   salesReports: 'salesReports.json',
   representativeNotes: 'representativeNotes.json',
+  warranties: 'warranties.json',
 };
 
 
@@ -161,9 +162,14 @@ const writeRepresentativeNotes = (data) =>
   writeJson('representativeNotes', data);
 
 
-// توابع عمومی برای یادداشت‌ها (هم ادمین هم نماینده)
+// توابع عمومی برای یادداشت‌ها، برای ادمین و نماینده
 const readNotes = () => readJson('representativeNotes');
 const writeNotes = (data) => writeJson('representativeNotes', data);
+
+
+// توابع ذخیره‌سازی درخواست‌های گارانتی
+const readWarranties = () => readJson('warranties');
+const writeWarranties = (data) => writeJson('warranties', data);
 
 
 module.exports = {
@@ -172,26 +178,40 @@ module.exports = {
   ensureDataFiles,
   readJson,
   writeJson,
+
   readProducts,
   writeProducts,
+
   readRepresentatives,
   writeRepresentatives,
+
   readShipments,
   writeShipments,
+
   readAdmins,
   writeAdmins,
+
   readWarehouse,
   writeWarehouse,
+
   readWarehouseMovements,
   writeWarehouseMovements,
+
   readRepresentativeWarehouses,
   writeRepresentativeWarehouses,
+
   readReturnRequests,
   writeReturnRequests,
+
   readSalesReports,
   writeSalesReports,
+
   readRepresentativeNotes,
   writeRepresentativeNotes,
+
   readNotes,
   writeNotes,
+
+  readWarranties,
+  writeWarranties,
 };

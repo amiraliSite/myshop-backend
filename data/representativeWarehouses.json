@@ -1176,12 +1176,12 @@
         "productName": "لپ تاپ ایسوس ROG",
         "brand": "ایسوس",
         "category": "الکترونیک",
-        "quantity": 5,
+        "quantity": 10,
         "unitPrice": 85000000,
-        "totalPrice": 425000000,
+        "totalPrice": 850000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859649-3v44nd95",
@@ -1189,12 +1189,12 @@
         "productName": "گوشی آیفون 15",
         "brand": "اپل",
         "category": "الکترونیک",
-        "quantity": 15,
+        "quantity": 30,
         "unitPrice": 65000000,
-        "totalPrice": 975000000,
+        "totalPrice": 1950000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859649-7goiri07",
@@ -1202,12 +1202,12 @@
         "productName": "هدفون سونی WH-1000XM5",
         "brand": "سونی",
         "category": "الکترونیک",
-        "quantity": 20,
+        "quantity": 40,
         "unitPrice": 12000000,
-        "totalPrice": 240000000,
+        "totalPrice": 480000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859649-k0vuy1r6",
@@ -1215,12 +1215,12 @@
         "productName": "یخچال ال‌جی ساید بای ساید",
         "brand": "ال‌جی",
         "category": "لوازم خانگی",
-        "quantity": 8,
+        "quantity": 16,
         "unitPrice": 45000000,
-        "totalPrice": 360000000,
+        "totalPrice": 720000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859649-voeumx2s",
@@ -1228,12 +1228,12 @@
         "productName": "ماشین لباسشویی بوش 9 کیلو",
         "brand": "بوش",
         "category": "لوازم خانگی",
-        "quantity": 12,
+        "quantity": 24,
         "unitPrice": 28000000,
-        "totalPrice": 336000000,
+        "totalPrice": 672000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859650-ew05evi4",
@@ -1241,12 +1241,12 @@
         "productName": "جاروبرقی پارس خزر",
         "brand": "پارس خزر",
         "category": "لوازم خانگی",
-        "quantity": 25,
+        "quantity": 50,
         "unitPrice": 4500000,
-        "totalPrice": 112500000,
+        "totalPrice": 225000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859650-ai2sbxue",
@@ -1254,12 +1254,12 @@
         "productName": "مایکروویو ال‌جی 25 لیتر",
         "brand": "ال‌جی",
         "category": "لوازم خانگی",
-        "quantity": 18,
+        "quantity": 36,
         "unitPrice": 6500000,
-        "totalPrice": 117000000,
+        "totalPrice": 234000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859650-ttbupkd6",
@@ -1267,12 +1267,12 @@
         "productName": "اجاق گاز استیل البرز",
         "brand": "استیل البرز",
         "category": "لوازم خانگی",
-        "quantity": 7,
+        "quantity": 14,
         "unitPrice": 12500000,
-        "totalPrice": 87500000,
+        "totalPrice": 175000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859650-xhxf6za7",
@@ -1280,12 +1280,12 @@
         "productName": "پیراهن مردانه",
         "brand": "ال سی وایکیکی",
         "category": "پوشاک",
-        "quantity": 50,
+        "quantity": 100,
         "unitPrice": 850000,
-        "totalPrice": 42500000,
+        "totalPrice": 85000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859651-hl4znc6k",
@@ -1293,12 +1293,12 @@
         "productName": "شلوار جین زنانه",
         "brand": "زارا",
         "category": "پوشاک",
-        "quantity": 40,
+        "quantity": 80,
         "unitPrice": 1200000,
-        "totalPrice": 48000000,
+        "totalPrice": 96000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859651-y2zym8na",
@@ -1306,12 +1306,12 @@
         "productName": "کفش ورزشی نایک",
         "brand": "نایک",
         "category": "پوشاک",
-        "quantity": 30,
+        "quantity": 60,
         "unitPrice": 3500000,
-        "totalPrice": 105000000,
+        "totalPrice": 210000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859651-uz4byfug",
@@ -1319,12 +1319,12 @@
         "productName": "برنج ایرانی 10 کیلویی",
         "brand": "هاشمی",
         "category": "مواد غذایی",
-        "quantity": 100,
+        "quantity": 200,
         "unitPrice": 850000,
-        "totalPrice": 85000000,
+        "totalPrice": 170000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859651-wnbmwkml",
@@ -1332,12 +1332,12 @@
         "productName": "روغن آفتابگردان 1.8 لیتری",
         "brand": "لادن",
         "category": "مواد غذایی",
-        "quantity": 200,
+        "quantity": 400,
         "unitPrice": 185000,
-        "totalPrice": 37000000,
+        "totalPrice": 74000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859651-4cj4x58i",
@@ -1345,12 +1345,12 @@
         "productName": "چای سیاه 500 گرمی",
         "brand": "گلستان",
         "category": "مواد غذایی",
-        "quantity": 150,
+        "quantity": 300,
         "unitPrice": 320000,
-        "totalPrice": 48000000,
+        "totalPrice": 96000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859651-0rowdyvv",
@@ -1358,12 +1358,12 @@
         "productName": "شامپو ضد ریزش مو",
         "brand": "هد اند شولدرز",
         "category": "آرایشی بهداشتی",
-        "quantity": 80,
+        "quantity": 160,
         "unitPrice": 450000,
-        "totalPrice": 36000000,
+        "totalPrice": 72000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859651-rycnfg13",
@@ -1371,12 +1371,12 @@
         "productName": "کرم مرطوب کننده صورت",
         "brand": "نیوآ",
         "category": "آرایشی بهداشتی",
-        "quantity": 60,
+        "quantity": 120,
         "unitPrice": 680000,
-        "totalPrice": 40800000,
+        "totalPrice": 81600000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859652-e8b4l79w",
@@ -1384,12 +1384,12 @@
         "productName": "صابون مایع دست",
         "brand": "دتول",
         "category": "آرایشی بهداشتی",
-        "quantity": 120,
+        "quantity": 240,
         "unitPrice": 125000,
-        "totalPrice": 15000000,
+        "totalPrice": 30000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859652-f8fktw57",
@@ -1397,12 +1397,12 @@
         "productName": "دمبل 5 کیلویی",
         "brand": "نایک",
         "category": "ورزشی",
-        "quantity": 25,
+        "quantity": 50,
         "unitPrice": 850000,
-        "totalPrice": 21250000,
+        "totalPrice": 42500000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859652-ewkknfbl",
@@ -1410,12 +1410,12 @@
         "productName": "تردمیل خانگی",
         "brand": "پرو فرم",
         "category": "ورزشی",
-        "quantity": 3,
+        "quantity": 6,
         "unitPrice": 35000000,
-        "totalPrice": 105000000,
+        "totalPrice": 210000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859652-0oagum7p",
@@ -1423,12 +1423,12 @@
         "productName": "توپ فوتبال آدیداس",
         "brand": "آدیداس",
         "category": "ورزشی",
-        "quantity": 40,
+        "quantity": 80,
         "unitPrice": 1800000,
-        "totalPrice": 72000000,
+        "totalPrice": 144000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859652-88sc21uw",
@@ -1436,12 +1436,12 @@
         "productName": "کتاب اثر مرکب",
         "brand": "نشر نوین",
         "category": "فرهنگی",
-        "quantity": 200,
+        "quantity": 400,
         "unitPrice": 185000,
-        "totalPrice": 37000000,
+        "totalPrice": 74000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859653-gho24s47",
@@ -1449,12 +1449,12 @@
         "productName": "دفتر یادداشت A5",
         "brand": "فابر کاستل",
         "category": "فرهنگی",
-        "quantity": 300,
+        "quantity": 600,
         "unitPrice": 95000,
-        "totalPrice": 28500000,
+        "totalPrice": 57000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859653-6jk84bc4",
@@ -1462,12 +1462,12 @@
         "productName": "خودکار آبی",
         "brand": "بیک",
         "category": "فرهنگی",
-        "quantity": 500,
+        "quantity": 1000,
         "unitPrice": 45000,
-        "totalPrice": 22500000,
+        "totalPrice": 45000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859653-euerjuk4",
@@ -1475,12 +1475,12 @@
         "productName": "چراغ مطالعه LED",
         "brand": "شیائومی",
         "category": "عمومی",
-        "quantity": 35,
+        "quantity": 70,
         "unitPrice": 1250000,
-        "totalPrice": 43750000,
+        "totalPrice": 87500000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859653-r7h7d2c0",
@@ -1488,12 +1488,12 @@
         "productName": "ساعت دیواری",
         "brand": "کاسیو",
         "category": "عمومی",
-        "quantity": 45,
+        "quantity": 90,
         "unitPrice": 680000,
-        "totalPrice": 30600000,
+        "totalPrice": 61200000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       },
       {
         "id": "1790686859653-lrvj7j6j",
@@ -1501,15 +1501,406 @@
         "productName": "چتر تاشو",
         "brand": "متفرقه",
         "category": "عمومی",
-        "quantity": 60,
+        "quantity": 120,
         "unitPrice": 350000,
-        "totalPrice": 21000000,
+        "totalPrice": 42000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T13:00:59.648Z"
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953074-dm9avpw9",
+        "productId": "1791026953074-bumbl0ci",
+        "productName": "تلویزیون سامسونگ 55 اینچ",
+        "brand": "بدنه خودرو",
+        "category": "الکترونیک",
+        "quantity": 10,
+        "unitPrice": 25000000,
+        "totalPrice": 250000000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:13.073Z"
       }
     ],
     "movements": [
+      {
+        "id": "1791026953100-rw7zqhwc",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859653-3bxk6lc5",
+        "productName": "چتر تاشو",
+        "brand": "متفرقه",
+        "category": "عمومی",
+        "type": "in",
+        "quantity": 60,
+        "unitPrice": 350000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 28 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953098-165thpqk",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859653-p2nfrnym",
+        "productName": "ساعت دیواری",
+        "brand": "کاسیو",
+        "category": "عمومی",
+        "type": "in",
+        "quantity": 45,
+        "unitPrice": 680000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 27 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953098-vjsjreq4",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859653-63v653ns",
+        "productName": "چراغ مطالعه LED",
+        "brand": "شیائومی",
+        "category": "عمومی",
+        "type": "in",
+        "quantity": 35,
+        "unitPrice": 1250000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 26 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953098-q047tetj",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859653-2o8p586z",
+        "productName": "خودکار آبی",
+        "brand": "بیک",
+        "category": "فرهنگی",
+        "type": "in",
+        "quantity": 500,
+        "unitPrice": 45000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 25 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953098-x41bp5h1",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859653-ozvdtvz7",
+        "productName": "دفتر یادداشت A5",
+        "brand": "فابر کاستل",
+        "category": "فرهنگی",
+        "type": "in",
+        "quantity": 300,
+        "unitPrice": 95000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 24 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953097-0nbu7z26",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859652-8zw2dbir",
+        "productName": "کتاب اثر مرکب",
+        "brand": "نشر نوین",
+        "category": "فرهنگی",
+        "type": "in",
+        "quantity": 200,
+        "unitPrice": 185000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 23 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953097-qmltbkiy",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859652-phtjb2j0",
+        "productName": "توپ فوتبال آدیداس",
+        "brand": "آدیداس",
+        "category": "ورزشی",
+        "type": "in",
+        "quantity": 40,
+        "unitPrice": 1800000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 22 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953097-4xxw7h0x",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859652-jaohu53a",
+        "productName": "تردمیل خانگی",
+        "brand": "پرو فرم",
+        "category": "ورزشی",
+        "type": "in",
+        "quantity": 3,
+        "unitPrice": 35000000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 21 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953089-vqkkr1wy",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859652-oezghmgx",
+        "productName": "دمبل 5 کیلویی",
+        "brand": "نایک",
+        "category": "ورزشی",
+        "type": "in",
+        "quantity": 25,
+        "unitPrice": 850000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 20 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953089-9mo1doto",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859652-7hivl6n2",
+        "productName": "صابون مایع دست",
+        "brand": "دتول",
+        "category": "آرایشی بهداشتی",
+        "type": "in",
+        "quantity": 120,
+        "unitPrice": 125000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 19 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953088-q3wswhid",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859651-jdf3kcxp",
+        "productName": "کرم مرطوب کننده صورت",
+        "brand": "نیوآ",
+        "category": "آرایشی بهداشتی",
+        "type": "in",
+        "quantity": 60,
+        "unitPrice": 680000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 18 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953085-rz5et643",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859651-8v41cehc",
+        "productName": "شامپو ضد ریزش مو",
+        "brand": "هد اند شولدرز",
+        "category": "آرایشی بهداشتی",
+        "type": "in",
+        "quantity": 80,
+        "unitPrice": 450000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 17 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953085-gqbcnae7",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859651-r0495ni8",
+        "productName": "چای سیاه 500 گرمی",
+        "brand": "گلستان",
+        "category": "مواد غذایی",
+        "type": "in",
+        "quantity": 150,
+        "unitPrice": 320000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 16 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953085-l5mmbyhj",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859651-q646ees1",
+        "productName": "روغن آفتابگردان 1.8 لیتری",
+        "brand": "لادن",
+        "category": "مواد غذایی",
+        "type": "in",
+        "quantity": 200,
+        "unitPrice": 185000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 15 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953085-r0y3mfv6",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859651-bl4klrbu",
+        "productName": "برنج ایرانی 10 کیلویی",
+        "brand": "هاشمی",
+        "category": "مواد غذایی",
+        "type": "in",
+        "quantity": 100,
+        "unitPrice": 850000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 14 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953085-ejx71aul",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859651-yh23ps9z",
+        "productName": "کفش ورزشی نایک",
+        "brand": "نایک",
+        "category": "پوشاک",
+        "type": "in",
+        "quantity": 30,
+        "unitPrice": 3500000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 13 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953083-l7dbwz7n",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859651-otyxye1j",
+        "productName": "شلوار جین زنانه",
+        "brand": "زارا",
+        "category": "پوشاک",
+        "type": "in",
+        "quantity": 40,
+        "unitPrice": 1200000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 12 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953083-ycd2x2nv",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859650-hdjo8w30",
+        "productName": "پیراهن مردانه",
+        "brand": "ال سی وایکیکی",
+        "category": "پوشاک",
+        "type": "in",
+        "quantity": 50,
+        "unitPrice": 850000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 11 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953080-0ituzoem",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859650-enlxjwta",
+        "productName": "اجاق گاز استیل البرز",
+        "brand": "استیل البرز",
+        "category": "لوازم خانگی",
+        "type": "in",
+        "quantity": 7,
+        "unitPrice": 12500000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 10 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953079-igy3uiqu",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859650-7w01ly5s",
+        "productName": "مایکروویو ال‌جی 25 لیتر",
+        "brand": "ال‌جی",
+        "category": "لوازم خانگی",
+        "type": "in",
+        "quantity": 18,
+        "unitPrice": 6500000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 9 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953079-u5xklu49",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859650-7t7jw5t9",
+        "productName": "جاروبرقی پارس خزر",
+        "brand": "پارس خزر",
+        "category": "لوازم خانگی",
+        "type": "in",
+        "quantity": 25,
+        "unitPrice": 4500000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 8 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953079-7iyesega",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859649-ll0rpw6r",
+        "productName": "ماشین لباسشویی بوش 9 کیلو",
+        "brand": "بوش",
+        "category": "لوازم خانگی",
+        "type": "in",
+        "quantity": 12,
+        "unitPrice": 28000000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 7 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953079-pc1j1atz",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859649-euii74rm",
+        "productName": "یخچال ال‌جی ساید بای ساید",
+        "brand": "ال‌جی",
+        "category": "لوازم خانگی",
+        "type": "in",
+        "quantity": 8,
+        "unitPrice": 45000000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 6 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953079-4qqjgvq5",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859649-1l1go2e6",
+        "productName": "هدفون سونی WH-1000XM5",
+        "brand": "سونی",
+        "category": "الکترونیک",
+        "type": "in",
+        "quantity": 20,
+        "unitPrice": 12000000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 5 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953079-ylx9s76e",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859649-ch6jnt4o",
+        "productName": "گوشی آیفون 15",
+        "brand": "اپل",
+        "category": "الکترونیک",
+        "type": "in",
+        "quantity": 15,
+        "unitPrice": 65000000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 4 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953074-o26jz6bd",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1790686859649-qks29zuj",
+        "productName": "لپ تاپ ایسوس ROG",
+        "brand": "ایسوس",
+        "category": "الکترونیک",
+        "type": "in",
+        "quantity": 5,
+        "unitPrice": 85000000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 3 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
+      {
+        "id": "1791026953074-q5vh2q91",
+        "representativeId": "1790651135345-9cxwpvft",
+        "productId": "1791026953074-bumbl0ci",
+        "productName": "تلویزیون سامسونگ 55 اینچ",
+        "brand": "بدنه خودرو",
+        "category": "الکترونیک",
+        "type": "in",
+        "quantity": 10,
+        "unitPrice": 25000000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 2 از فایل test-products.xlsx",
+        "createdAt": "2026-10-03T11:29:13.073Z"
+      },
       {
         "id": "1790686859653-lpjnmj9t",
         "representativeId": "1790651135345-9cxwpvft",
@@ -2029,7 +2420,7 @@
         "createdAt": "2026-09-29T03:07:45.573Z"
       }
     ],
-    "updatedAt": "2026-09-29T13:00:59.648Z"
+    "updatedAt": "2026-10-03T11:29:13.073Z"
   },
   {
     "representativeId": "1790651229784-05uzqcph",
@@ -2092,12 +2483,12 @@
         "productName": "دیسک و صفحه کلاچ سمند",
         "brand": "",
         "category": "",
-        "quantity": 12,
+        "quantity": 10,
         "unitPrice": 4200000,
-        "totalPrice": 50400000,
+        "totalPrice": 42000000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T03:09:41.907Z"
+        "lastUpdated": "2026-10-03T12:52:24.011Z"
       },
       {
         "id": "1790651381907-3yxiuv5l",
@@ -2131,12 +2522,12 @@
         "productName": "کمک فنر جلو پژو پارس",
         "brand": "",
         "category": "",
-        "quantity": 10,
+        "quantity": 9,
         "unitPrice": 2600000,
-        "totalPrice": 26000000,
+        "totalPrice": 23400000,
         "minimumStock": 0,
         "status": "normal",
-        "lastUpdated": "2026-09-29T03:09:41.907Z"
+        "lastUpdated": "2026-10-03T11:27:07.667Z"
       },
       {
         "id": "1790651381907-avpy3jtn",
@@ -2166,6 +2557,48 @@
       }
     ],
     "movements": [
+      {
+        "id": "warranty-movement-1791031944016-ktdl6i",
+        "representativeId": "1790651229784-05uzqcph",
+        "productId": "1790651381907-lqizklbx",
+        "productName": "دیسک و صفحه کلاچ سمند",
+        "brand": "",
+        "category": "",
+        "type": "out",
+        "quantity": 1,
+        "unitPrice": 4200000,
+        "reason": "تأیید درخواست گارانتی",
+        "description": "کسر موجودی به دلیل تأیید درخواست گارانتی با کد پیگیری 4270835225",
+        "createdAt": "2026-10-03T12:52:24.011Z"
+      },
+      {
+        "id": "warranty-movement-1791026827676-tp7ncr",
+        "representativeId": "1790651229784-05uzqcph",
+        "productId": "1790651381907-4plk64j8",
+        "productName": "کمک فنر جلو پژو پارس",
+        "brand": "",
+        "category": "",
+        "type": "out",
+        "quantity": 1,
+        "unitPrice": 2600000,
+        "reason": "تأیید درخواست گارانتی",
+        "description": "کسر موجودی به دلیل تأیید درخواست گارانتی شماره warranty-1791026807430-ze41u1",
+        "createdAt": "2026-10-03T11:27:07.667Z"
+      },
+      {
+        "id": "warranty-movement-1791017445616-47oo0t",
+        "representativeId": "1790651229784-05uzqcph",
+        "productId": "1790651381907-lqizklbx",
+        "productName": "دیسک و صفحه کلاچ سمند",
+        "brand": "",
+        "category": "",
+        "type": "out",
+        "quantity": 1,
+        "unitPrice": 4200000,
+        "reason": "تأیید درخواست گارانتی",
+        "description": "کسر موجودی به دلیل تأیید درخواست گارانتی شماره warranty-1791017383394-9l1tu1",
+        "createdAt": "2026-10-03T08:50:45.607Z"
+      },
       {
         "id": "1790926539390-lza1br",
         "representativeId": "1790651229784-05uzqcph",
@@ -2421,7 +2854,7 @@
         "createdAt": "2026-09-29T03:09:41.907Z"
       }
     ],
-    "updatedAt": "2026-10-02T07:35:39.390Z"
+    "updatedAt": "2026-10-03T12:52:24.011Z"
   },
   {
     "representativeId": "1790757938082-3vgh8aco",
@@ -3207,5 +3640,297 @@
       }
     ],
     "updatedAt": "2026-09-30T09:46:00.808Z"
+  },
+  {
+    "representativeId": "1790766522805-h7nb9vtl",
+    "items": [
+      {
+        "id": "1791026971582-1lok2ike",
+        "productId": "1791026971582-c4qei97s",
+        "productName": "فیلتر روغن پراید",
+        "brand": "",
+        "category": "",
+        "quantity": 50,
+        "unitPrice": 85000,
+        "totalPrice": 4250000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-lzrr3f6l",
+        "productId": "1791026971582-zomee5bh",
+        "productName": "لنت ترمز جلو پژو 405",
+        "brand": "",
+        "category": "",
+        "quantity": 30,
+        "unitPrice": 420000,
+        "totalPrice": 12600000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-29rqs68i",
+        "productId": "1791026971582-f9d5l9i0",
+        "productName": "شمع موتور پژو 206",
+        "brand": "",
+        "category": "",
+        "quantity": 80,
+        "unitPrice": 110000,
+        "totalPrice": 8800000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-fsqr8mdz",
+        "productId": "1791026971582-10001oq3",
+        "productName": "فیلتر هوای تیبا",
+        "brand": "",
+        "category": "",
+        "quantity": 45,
+        "unitPrice": 95000,
+        "totalPrice": 4275000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-zn89mdsw",
+        "productId": "1791026971582-ygme5kwz",
+        "productName": "دیسک و صفحه کلاچ سمند",
+        "brand": "",
+        "category": "",
+        "quantity": 12,
+        "unitPrice": 4200000,
+        "totalPrice": 50400000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-ewg5tr2h",
+        "productId": "1791026971582-84osyns8",
+        "productName": "تسمه تایم پژو 206",
+        "brand": "",
+        "category": "",
+        "quantity": 18,
+        "unitPrice": 780000,
+        "totalPrice": 14040000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:31:30.475Z"
+      },
+      {
+        "id": "1791026971582-tlnuk8xe",
+        "productId": "1791026971582-ti8tnccs",
+        "productName": "بلبرینگ چرخ جلو پراید",
+        "brand": "",
+        "category": "",
+        "quantity": 20,
+        "unitPrice": 650000,
+        "totalPrice": 13000000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-b71w43g7",
+        "productId": "1791026971582-33ye219a",
+        "productName": "کمک فنر جلو پژو پارس",
+        "brand": "",
+        "category": "",
+        "quantity": 10,
+        "unitPrice": 2600000,
+        "totalPrice": 26000000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-ku1zoizq",
+        "productId": "1791026971582-hwgvf7o4",
+        "productName": "واتر پمپ پژو 405",
+        "brand": "",
+        "category": "",
+        "quantity": 18,
+        "unitPrice": 1350000,
+        "totalPrice": 24300000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-e2eig57g",
+        "productId": "1791026971582-jrng84is",
+        "productName": "روغن موتور 10W-40 چهار لیتری",
+        "brand": "",
+        "category": "",
+        "quantity": 40,
+        "unitPrice": 950000,
+        "totalPrice": 38000000,
+        "minimumStock": 0,
+        "status": "normal",
+        "lastUpdated": "2026-10-03T11:29:31.582Z"
+      }
+    ],
+    "movements": [
+      {
+        "id": "warranty-movement-1791027090480-gzareg",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-84osyns8",
+        "productName": "تسمه تایم پژو 206",
+        "brand": "",
+        "category": "",
+        "type": "out",
+        "quantity": 7,
+        "unitPrice": 780000,
+        "reason": "تأیید درخواست گارانتی",
+        "description": "کسر موجودی به دلیل تأیید درخواست گارانتی شماره warranty-1791027065193-82kwfr",
+        "createdAt": "2026-10-03T11:31:30.475Z"
+      },
+      {
+        "id": "1791026971582-a5uupj6o",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-jrng84is",
+        "productName": "روغن موتور 10W-40 چهار لیتری",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 40,
+        "unitPrice": 950000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 11 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-0o4gulri",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-hwgvf7o4",
+        "productName": "واتر پمپ پژو 405",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 18,
+        "unitPrice": 1350000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 10 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-11lfmmfd",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-33ye219a",
+        "productName": "کمک فنر جلو پژو پارس",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 10,
+        "unitPrice": 2600000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 9 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-botas0p9",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-ti8tnccs",
+        "productName": "بلبرینگ چرخ جلو پراید",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 20,
+        "unitPrice": 650000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 8 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-omgqrqps",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-84osyns8",
+        "productName": "تسمه تایم پژو 206",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 25,
+        "unitPrice": 780000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 7 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-yu3mjymr",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-ygme5kwz",
+        "productName": "دیسک و صفحه کلاچ سمند",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 12,
+        "unitPrice": 4200000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 6 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-jkww6tsq",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-10001oq3",
+        "productName": "فیلتر هوای تیبا",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 45,
+        "unitPrice": 95000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 5 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-eni53091",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-f9d5l9i0",
+        "productName": "شمع موتور پژو 206",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 80,
+        "unitPrice": 110000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 4 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-nxhyfped",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-zomee5bh",
+        "productName": "لنت ترمز جلو پژو 405",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 30,
+        "unitPrice": 420000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 3 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      },
+      {
+        "id": "1791026971582-ht71ojl6",
+        "representativeId": "1790766522805-h7nb9vtl",
+        "productId": "1791026971582-c4qei97s",
+        "productName": "فیلتر روغن پراید",
+        "brand": "",
+        "category": "",
+        "type": "in",
+        "quantity": 50,
+        "unitPrice": 85000,
+        "reason": "ارسال بار از اکسل",
+        "description": "ردیف 2 از فایل test-auto-parts-warehouse.xlsx",
+        "createdAt": "2026-10-03T11:29:31.582Z"
+      }
+    ],
+    "updatedAt": "2026-10-03T11:31:30.475Z"
   }
 ]

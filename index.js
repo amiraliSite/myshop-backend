@@ -29,6 +29,7 @@ const adminReturnRequestsRouter = require('./routes/adminReturnRequests.routes')
 const supportRequestsRouter = require('./routes/supportRequests');
 const adminSupportRequestsRouter = require('./routes/adminSupportRequests.routes');
 const notesRouter = require('./routes/notes.routes');
+const warrantiesRouter = require('./routes/warranties.routes');
 
 
 const app = express();
@@ -67,13 +68,32 @@ if (!fs.existsSync(REPRESENTATIVES_FILES_DIR)) {
 }
 
 
+// پوشهٔ عکس‌های درخواست گارانتی
+const WARRANTIES_UPLOADS_DIR = path.join(
+  UPLOADS_DIR,
+  'warranties',
+);
+
+
+if (!fs.existsSync(WARRANTIES_UPLOADS_DIR)) {
+  fs.mkdirSync(WARRANTIES_UPLOADS_DIR, {
+    recursive: true,
+  });
+}
+
+
 // ========== Middleware Cache-Control ==========
 // غیرفعال کردن کامل Cache برای همه درخواست‌ها
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, proxy-revalidate',
+  );
+
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.setHeader('Surrogate-Control', 'no-store');
+
   next();
 });
 // ===============================================
@@ -84,8 +104,18 @@ app.use(
   cors({
     origin: true,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: [
+      'GET',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'OPTIONS',
+    ],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+    ],
   }),
 );
 
@@ -122,17 +152,57 @@ app.get('/api/health', (_req, res) => {
 // روت‌های API
 app.use('/api/auth', authRouter);
 app.use('/api/products', productsRouter);
-app.use('/api/representatives', representativeFilesRouter);
-app.use('/api/representatives', representativeWarehouseRouter);
-app.use('/api/representatives', representativesRouter);
-app.use('/api/representative', representativeDashboardRouter);
-app.use('/api/sales-from-warehouse', salesFromWarehouseRouter);
+
+app.use(
+  '/api/representatives',
+  representativeFilesRouter,
+);
+
+app.use(
+  '/api/representatives',
+  representativeWarehouseRouter,
+);
+
+app.use(
+  '/api/representatives',
+  representativesRouter,
+);
+
+app.use(
+  '/api/representative',
+  representativeDashboardRouter,
+);
+
+app.use(
+  '/api/sales-from-warehouse',
+  salesFromWarehouseRouter,
+);
+
 app.use('/api/shipments', shipmentsRouter);
-app.use('/api/return-requests', returnRequestsRouter);
-app.use('/api/admin/return-requests', adminReturnRequestsRouter);
-app.use('/api/support-requests', supportRequestsRouter);
-app.use('/api/admin/support-requests', adminSupportRequestsRouter);
+
+app.use(
+  '/api/return-requests',
+  returnRequestsRouter,
+);
+
+app.use(
+  '/api/admin/return-requests',
+  adminReturnRequestsRouter,
+);
+
+app.use(
+  '/api/support-requests',
+  supportRequestsRouter,
+);
+
+app.use(
+  '/api/admin/support-requests',
+  adminSupportRequestsRouter,
+);
+
 app.use('/api/notes', notesRouter);
+
+app.use('/api/warranties', warrantiesRouter);
 
 
 // ========== DEBUG: دانلود فایل‌های JSON ==========
@@ -156,9 +226,12 @@ app.get('/api/debug/data-files', (req, res) => {
     });
   } catch (error) {
     console.error('خطا در خواندن فایل‌های JSON:', error);
+
     return res.status(500).json({
       success: false,
-      error: error.message || 'خطا در خواندن داده‌ها.',
+      error:
+        error.message ||
+        'خطا در خواندن داده‌ها.',
     });
   }
 });
@@ -192,7 +265,9 @@ app.use((error, _req, res, _next) => {
   if (error?.name === 'MulterError') {
     return res.status(400).json({
       success: false,
-      error: error.message || 'خطا در دریافت فایل ارسالی.',
+      error:
+        error.message ||
+        'خطا در دریافت فایل ارسالی.',
     });
   }
 
@@ -219,18 +294,25 @@ function getLocalIPs() {
 
 
   for (const interfaceList of Object.values(interfaces)) {
-    if (!interfaceList) continue;
+    if (!interfaceList) {
+      continue;
+    }
 
 
     for (const network of interfaceList) {
       const isIPv4 = network.family === 'IPv4';
+
       const isPrivateNetwork =
         network.address.startsWith('192.168.') ||
         network.address.startsWith('10.') ||
         network.address.startsWith('172.');
 
 
-      if (isIPv4 && !network.internal && isPrivateNetwork) {
+      if (
+        isIPv4 &&
+        !network.internal &&
+        isPrivateNetwork
+      ) {
         ips.push(network.address);
       }
     }
@@ -249,32 +331,107 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('\n🚀 ====================================');
   console.log('✅ Main backend is running!');
   console.log('🚀 ====================================');
-  console.log(`📍 API: http://localhost:${PORT}/api`);
-  console.log(`📍 Health: http://localhost:${PORT}/api/health`);
-  console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
-  console.log(`📦 Products: http://localhost:${PORT}/api/products`);
-  console.log(`📤 Excel upload: POST http://localhost:${PORT}/api/products/upload`);
-  console.log(`👥 Representatives: http://localhost:${PORT}/api/representatives`);
-  console.log(`📁 Representative files: http://localhost:${PORT}/api/representatives/:id/files`);
-  console.log(`🏪 Representative warehouse: http://localhost:${PORT}/api/representatives/:id/warehouse`);
-  console.log(`👤 Representative dashboard: http://localhost:${PORT}/api/representative/dashboard`);
-  console.log(`🔄 Warehouse summary sync: POST http://localhost:${PORT}/api/representatives/warehouse/sync-summaries`);
-  console.log(`🚚 Shipments: http://localhost:${PORT}/api/shipments`);
-  console.log(`↩️ Return requests: http://localhost:${PORT}/api/return-requests`);
-  console.log(`👤 My return requests: http://localhost:${PORT}/api/return-requests/my`);
-  console.log(`🛡️ Admin return requests: http://localhost:${PORT}/api/admin/return-requests`);
-  console.log(`🆘 Support requests: http://localhost:${PORT}/api/support-requests`);
-  console.log(`👤 My support requests: http://localhost:${PORT}/api/support-requests/mine`);
-  console.log(`🛡️ Admin support requests: http://localhost:${PORT}/api/admin/support-requests`);
-  console.log(`📝 Notes: http://localhost:${PORT}/api/notes`);
-  console.log(`📁 Uploads: http://localhost:${PORT}/uploads`);
-  console.log(`🔍 Debug data: http://localhost:${PORT}/api/debug/data-files`);
+
+  console.log(
+    `📍 API: http://localhost:${PORT}/api`,
+  );
+
+  console.log(
+    `📍 Health: http://localhost:${PORT}/api/health`,
+  );
+
+  console.log(
+    `🔐 Auth: http://localhost:${PORT}/api/auth`,
+  );
+
+  console.log(
+    `📦 Products: http://localhost:${PORT}/api/products`,
+  );
+
+  console.log(
+    `📤 Excel upload: POST http://localhost:${PORT}/api/products/upload`,
+  );
+
+  console.log(
+    `👥 Representatives: http://localhost:${PORT}/api/representatives`,
+  );
+
+  console.log(
+    `📁 Representative files: http://localhost:${PORT}/api/representatives/:id/files`,
+  );
+
+  console.log(
+    `🏪 Representative warehouse: http://localhost:${PORT}/api/representatives/:id/warehouse`,
+  );
+
+  console.log(
+    `👤 Representative dashboard: http://localhost:${PORT}/api/representative/dashboard`,
+  );
+
+  console.log(
+    `🔄 Warehouse summary sync: POST http://localhost:${PORT}/api/representatives/warehouse/sync-summaries`,
+  );
+
+  console.log(
+    `🚚 Shipments: http://localhost:${PORT}/api/shipments`,
+  );
+
+  console.log(
+    `↩️ Return requests: http://localhost:${PORT}/api/return-requests`,
+  );
+
+  console.log(
+    `👤 My return requests: http://localhost:${PORT}/api/return-requests/my`,
+  );
+
+  console.log(
+    `🛡️ Admin return requests: http://localhost:${PORT}/api/admin/return-requests`,
+  );
+
+  console.log(
+    `🆘 Support requests: http://localhost:${PORT}/api/support-requests`,
+  );
+
+  console.log(
+    `👤 My support requests: http://localhost:${PORT}/api/support-requests/mine`,
+  );
+
+  console.log(
+    `🛡️ Admin support requests: http://localhost:${PORT}/api/admin/support-requests`,
+  );
+
+  console.log(
+    `📝 Notes: http://localhost:${PORT}/api/notes`,
+  );
+
+  console.log(
+    `🛡️ Warranties: http://localhost:${PORT}/api/warranties`,
+  );
+
+  console.log(
+    `📦 Warranty form data: http://localhost:${PORT}/api/warranties/form-data`,
+  );
+
+  console.log(
+    `📁 Warranty images: http://localhost:${PORT}/uploads/warranties`,
+  );
+
+  console.log(
+    `📁 Uploads: http://localhost:${PORT}/uploads`,
+  );
+
+  console.log(
+    `🔍 Debug data: http://localhost:${PORT}/api/debug/data-files`,
+  );
 
 
   if (ips.length > 0) {
     console.log('📱 Network addresses:');
+
     ips.forEach((ip) => {
-      console.log(`   http://${ip}:${PORT}/api`);
+      console.log(
+        `   http://${ip}:${PORT}/api`,
+      );
     });
   }
 

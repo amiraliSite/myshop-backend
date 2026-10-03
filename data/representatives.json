@@ -14,15 +14,15 @@
     "totalFinancialCommitment": "1333333",
     "orders": 0,
     "shipmentsCount": 0,
-    "storeItemsCount": 2248,
-    "storeItemsTotalValue": 4728900000,
+    "storeItemsCount": 4406,
+    "storeItemsTotalValue": 8470800000,
     "returnRequestsCount": 0,
     "last10DaysSales": 0,
     "averageSales": 0,
     "status": "active",
     "folderNumber": 1,
     "createdAt": "2026-09-29T03:05:35.345Z",
-    "updatedAt": "2026-10-01T18:13:57.518Z"
+    "updatedAt": "2026-10-03T11:29:13.174Z"
   },
   {
     "id": "1790651229784-05uzqcph",
@@ -89,14 +89,14 @@
     "totalFinancialCommitment": "11555555",
     "orders": 0,
     "shipmentsCount": 0,
-    "storeItemsCount": 0,
-    "storeItemsTotalValue": 0,
+    "storeItemsCount": 330,
+    "storeItemsTotalValue": 201125000,
     "returnRequestsCount": 0,
     "last10DaysSales": 0,
     "averageSales": 0,
     "status": "active",
     "folderNumber": 4,
     "createdAt": "2026-09-30T11:08:42.804Z",
-    "updatedAt": "2026-09-30T11:08:42.804Z"
+    "updatedAt": "2026-10-03T11:29:31.614Z"
   }
 ]

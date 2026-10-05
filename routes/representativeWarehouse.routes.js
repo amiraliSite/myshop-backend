@@ -51,17 +51,10 @@ function sameValue(firstValue, secondValue) {
   const first = normalizeValue(firstValue);
   const second = normalizeValue(secondValue);
 
-  return Boolean(
-    first &&
-      second &&
-      first === second,
-  );
+  return Boolean(first && second && first === second);
 }
 
-function getWarehouseStatus(
-  quantity,
-  minimumStock,
-) {
+function getWarehouseStatus(quantity, minimumStock) {
   const safeQuantity = toNumber(quantity);
   const safeMinimumStock = toNumber(minimumStock);
 
@@ -78,9 +71,7 @@ function getWarehouseStatus(
 
 function createEmptyWarehouse(representativeId) {
   return {
-    representativeId: String(
-      representativeId,
-    ).trim(),
+    representativeId: String(representativeId).trim(),
     items: [],
     movements: [],
     updatedAt: new Date().toISOString(),
@@ -100,12 +91,45 @@ function findRepresentative(
 }
 
 /*
-  محاسبهٔ خلاصهٔ واقعی انبار.
+  محاسبه سقف مالی بار نماینده
 
-  تعداد کل = جمع quantity همه کالاها
-  ارزش کل = جمع totalPrice همه کالاها؛
-  و اگر totalPrice نبود، quantity × unitPrice.
+  سقف بار:
+  مبلغ ودیعه + مبلغ چک ضمانت
+
+  totalFinancialCommitment صرفاً برای گزارش و کنترل
+  برگردانده می‌شود و دوباره به مبلغ اضافه نمی‌شود.
 */
+function getRepresentativeWarehouseBudget(
+  representative,
+) {
+  const depositAmount = Math.max(
+    0,
+    toNumber(representative?.depositAmount),
+  );
+
+  const guaranteeCheck = Math.max(
+    0,
+    toNumber(representative?.guaranteeCheck),
+  );
+
+  const totalFinancialCommitment = Math.max(
+    0,
+    toNumber(
+      representative?.totalFinancialCommitment,
+    ),
+  );
+
+  const warehouseBudget =
+    depositAmount + guaranteeCheck;
+
+  return {
+    depositAmount,
+    guaranteeCheck,
+    totalFinancialCommitment,
+    warehouseBudget,
+  };
+}
+
 function calculateWarehouseSummary(warehouse) {
   const items = Array.isArray(warehouse?.items)
     ? warehouse.items
@@ -113,9 +137,9 @@ function calculateWarehouseSummary(warehouse) {
 
   const storeItemsCount = items.reduce(
     (total, item) => {
-      return total + Math.max(
-        0,
-        toNumber(item.quantity),
+      return (
+        total +
+        Math.max(0, toNumber(item.quantity))
       );
     },
     0,
@@ -133,9 +157,9 @@ function calculateWarehouseSummary(warehouse) {
           : toNumber(item.quantity) *
             toNumber(item.unitPrice);
 
-      return total + Math.max(
-        0,
-        calculatedTotalPrice,
+      return (
+        total +
+        Math.max(0, calculatedTotalPrice)
       );
     },
     0,
@@ -147,9 +171,6 @@ function calculateWarehouseSummary(warehouse) {
   };
 }
 
-/*
-  ذخیرهٔ خلاصهٔ انبار برای یک نماینده در representatives.json.
-*/
 function updateRepresentativeWarehouseSummary(
   representativeId,
   warehouse,
@@ -199,17 +220,9 @@ function updateRepresentativeWarehouseSummary(
   return saved;
 }
 
-/*
-  همگام‌سازی خلاصهٔ انبار همه نمایندگان.
-
-  این تابع برای داده‌های قبلی هم استفاده می‌شود.
-*/
 function synchronizeAllWarehouseSummaries() {
   const representatives = readRepresentatives();
-
-  const warehouses =
-    readRepresentativeWarehouses();
-
+  const warehouses = readRepresentativeWarehouses();
   const now = new Date().toISOString();
 
   const updatedRepresentatives = representatives.map(
@@ -249,11 +262,6 @@ function synchronizeAllWarehouseSummaries() {
 
 /*
   POST /api/representatives/warehouse/sync-summaries
-
-  بروزرسانی خلاصهٔ موجودی همه نمایندگان از روی
-  representativeWarehouses.json.
-
-  این route باید قبل از /:id/warehouse باشد.
 */
 router.post(
   '/warehouse/sync-summaries',
@@ -295,8 +303,6 @@ router.post(
 
 /*
   GET /api/representatives/:id/warehouse
-
-  دریافت موجودی و گردش انبار نماینده.
 */
 router.get('/:id/warehouse', (req, res) => {
   try {
@@ -337,7 +343,9 @@ router.get('/:id/warehouse', (req, res) => {
 
       warehouses.push(newWarehouse);
 
-      if (!writeRepresentativeWarehouses(warehouses)) {
+      if (
+        !writeRepresentativeWarehouses(warehouses)
+      ) {
         return res.status(500).json({
           success: false,
           error: 'ساخت انبار نماینده ناموفق بود.',
@@ -408,23 +416,14 @@ router.get('/:id/warehouse', (req, res) => {
 /*
   POST /api/representatives/:id/warehouse/import
 
-  ثبت ردیف‌های اکسل فقط در انبار همین نماینده.
-  این مسیر هیچ تغییری در products.json نمی‌دهد.
+  سقف بار:
+  depositAmount + guaranteeCheck
 
-  Body:
-  {
-    "fileName": "warehouse.xlsx",
-    "items": [
-      {
-        "name": "نام کالا",
-        "brand": "برند",
-        "category": "دسته‌بندی",
-        "quantity": 3,
-        "unitPrice": 100000,
-        "rowIndex": 2
-      }
-    ]
-  }
+  ارزش هر ردیف:
+  quantity * unitPrice
+
+  اگر مبلغ برای کل تعداد کافی نباشد،
+  فقط تعداد قابل خرید ثبت می‌شود.
 */
 router.post('/:id/warehouse/import', (req, res) => {
   try {
@@ -466,6 +465,59 @@ router.post('/:id/warehouse/import', (req, res) => {
       });
     }
 
+    const budget =
+      getRepresentativeWarehouseBudget(
+        representative,
+      );
+
+    const {
+      depositAmount,
+      guaranteeCheck,
+      totalFinancialCommitment,
+      warehouseBudget,
+    } = budget;
+
+    if (warehouseBudget <= 0) {
+      return res.status(400).json({
+        success: false,
+        error:
+          'مبلغ ودیعه و چک ضمانت نماینده صفر یا نامعتبر است.',
+        data: {
+          depositAmount,
+          guaranteeCheck,
+          totalFinancialCommitment,
+          warehouseBudget: 0,
+          importedAmount: 0,
+          remainingAmount: 0,
+          acceptedRowsCount: 0,
+          acceptedQuantity: 0,
+          rejectedRowsCount: inputItems.length,
+          rejectedQuantity: inputItems.reduce(
+            (total, row) => {
+              return total + toNumber(row?.quantity);
+            },
+            0,
+          ),
+          rejectedItems: inputItems.map((row) => ({
+            rowIndex: row?.rowIndex ?? null,
+            name: cleanText(row?.name),
+            quantity: toNumber(row?.quantity),
+            acceptedQuantity: 0,
+            rejectedQuantity: toNumber(
+              row?.quantity,
+            ),
+            unitPrice: toNumber(row?.unitPrice),
+            rowTotal:
+              toNumber(row?.quantity) *
+              toNumber(row?.unitPrice),
+            acceptedTotal: 0,
+            reason:
+              'سقف مالی نماینده صفر یا نامعتبر است.',
+          })),
+        },
+      });
+    }
+
     const preparedItems = [];
 
     for (const row of inputItems) {
@@ -475,17 +527,43 @@ router.post('/:id/warehouse/import', (req, res) => {
       const quantity = toNumber(row?.quantity);
       const unitPrice = toNumber(row?.unitPrice);
 
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          error:
+            `ردیف ${row?.rowIndex ?? '?'} نام کالا ندارد.`,
+        });
+      }
+
       if (
-        !name ||
         !Number.isSafeInteger(quantity) ||
-        quantity <= 0 ||
-        !Number.isFinite(unitPrice) ||
-        unitPrice < 0
+        quantity <= 0
       ) {
         return res.status(400).json({
           success: false,
           error:
-            `ردیف ${row?.rowIndex ?? '?'} نام، تعداد یا قیمت نامعتبر دارد.`,
+            `ردیف ${row?.rowIndex ?? '?'} تعداد نامعتبر دارد.`,
+        });
+      }
+
+      if (
+        !Number.isFinite(unitPrice) ||
+        unitPrice <= 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          error:
+            `ردیف ${row?.rowIndex ?? '?'} قیمت واحد نامعتبر دارد.`,
+        });
+      }
+
+      const rowTotal = quantity * unitPrice;
+
+      if (!Number.isFinite(rowTotal)) {
+        return res.status(400).json({
+          success: false,
+          error:
+            `ارزش ردیف ${row?.rowIndex ?? '?'} نامعتبر است.`,
         });
       }
 
@@ -496,6 +574,122 @@ router.post('/:id/warehouse/import', (req, res) => {
         quantity,
         unitPrice,
         rowIndex: row?.rowIndex ?? null,
+        rowTotal,
+      });
+    }
+
+    const acceptedItems = [];
+    const rejectedItems = [];
+
+    let remainingAmount = warehouseBudget;
+    let importedAmount = 0;
+
+    for (const row of preparedItems) {
+      if (remainingAmount <= 0) {
+        rejectedItems.push({
+          rowIndex: row.rowIndex,
+          name: row.name,
+          brand: row.brand,
+          category: row.category,
+          quantity: row.quantity,
+          acceptedQuantity: 0,
+          rejectedQuantity: row.quantity,
+          unitPrice: row.unitPrice,
+          rowTotal: row.rowTotal,
+          acceptedTotal: 0,
+          reason:
+            'سقف مالی باقی‌مانده تمام شده است.',
+        });
+
+        continue;
+      }
+
+      const affordableQuantity = Math.floor(
+        remainingAmount / row.unitPrice,
+      );
+
+      const acceptedQuantity = Math.min(
+        row.quantity,
+        affordableQuantity,
+      );
+
+      const rejectedQuantity =
+        row.quantity - acceptedQuantity;
+
+      if (acceptedQuantity <= 0) {
+        rejectedItems.push({
+          rowIndex: row.rowIndex,
+          name: row.name,
+          brand: row.brand,
+          category: row.category,
+          quantity: row.quantity,
+          acceptedQuantity: 0,
+          rejectedQuantity: row.quantity,
+          unitPrice: row.unitPrice,
+          rowTotal: row.rowTotal,
+          acceptedTotal: 0,
+          reason:
+            'سقف مالی برای خرید حتی یک عدد کافی نیست.',
+        });
+
+        continue;
+      }
+
+      const acceptedTotal =
+        acceptedQuantity * row.unitPrice;
+
+      acceptedItems.push({
+        ...row,
+        originalQuantity: row.quantity,
+        quantity: acceptedQuantity,
+        rejectedQuantity,
+        rowTotal: acceptedTotal,
+      });
+
+      importedAmount += acceptedTotal;
+      remainingAmount -= acceptedTotal;
+
+      if (rejectedQuantity > 0) {
+        rejectedItems.push({
+          rowIndex: row.rowIndex,
+          name: row.name,
+          brand: row.brand,
+          category: row.category,
+          quantity: row.quantity,
+          acceptedQuantity,
+          rejectedQuantity,
+          unitPrice: row.unitPrice,
+          rowTotal: row.rowTotal,
+          acceptedTotal,
+          reason:
+            'تعداد ثبت‌شده به‌اندازه سقف مالی کاهش یافت.',
+        });
+      }
+    }
+
+    if (acceptedItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error:
+          'سقف مالی نماینده برای خرید حتی یک عدد از کالاهای فایل کافی نیست.',
+        data: {
+          depositAmount,
+          guaranteeCheck,
+          totalFinancialCommitment,
+          warehouseBudget,
+          importedAmount: 0,
+          remainingAmount: warehouseBudget,
+          acceptedRowsCount: 0,
+          acceptedQuantity: 0,
+          rejectedRowsCount: rejectedItems.length,
+          rejectedQuantity: rejectedItems.reduce(
+            (total, item) => {
+              return total + item.rejectedQuantity;
+            },
+            0,
+          ),
+          rejectedItems,
+        },
       });
     }
 
@@ -503,17 +697,19 @@ router.post('/:id/warehouse/import', (req, res) => {
       readRepresentativeWarehouses();
 
     let warehouseIndex = warehouses.findIndex(
-      (warehouse) =>
-        sameValue(
+      (warehouse) => {
+        return sameValue(
           warehouse.representativeId,
           representative.id,
-        ),
+        );
+      },
     );
 
     if (warehouseIndex < 0) {
       warehouses.push(
         createEmptyWarehouse(representative.id),
       );
+
       warehouseIndex = warehouses.length - 1;
     }
 
@@ -531,14 +727,18 @@ router.post('/:id/warehouse/import', (req, res) => {
 
     const now = new Date().toISOString();
     const fileName = cleanText(req.body?.fileName);
+
     let createdCount = 0;
     let updatedCount = 0;
 
-    for (const row of preparedItems) {
+    for (const row of acceptedItems) {
       const itemIndex = warehouse.items.findIndex(
-        (item) =>
-          sameValue(item.productName, row.name) &&
-          sameValue(item.brand, row.brand),
+        (item) => {
+          return (
+            sameValue(item.productName, row.name) &&
+            sameValue(item.brand, row.brand)
+          );
+        },
       );
 
       let item;
@@ -574,6 +774,7 @@ router.post('/:id/warehouse/import', (req, res) => {
 
         item = {
           ...previous,
+          productName: row.name,
           brand: row.brand,
           category:
             row.category ||
@@ -605,9 +806,15 @@ router.post('/:id/warehouse/import', (req, res) => {
         type: 'in',
         quantity: row.quantity,
         unitPrice: row.unitPrice,
-        reason: 'ارسال بار از اکسل',
+        rowTotal: row.rowTotal,
+        originalQuantity: row.originalQuantity,
+        rejectedQuantity: row.rejectedQuantity,
+        reason:
+          'ارسال بار از Excel بر اساس ودیعه و چک ضمانت',
         description:
-          `ردیف ${row.rowIndex ?? '-'} از فایل ${fileName || 'اکسل'}`,
+          `ردیف ${row.rowIndex ?? '-'} از فایل ${
+            fileName || 'Excel'
+          }`,
         createdAt: now,
       });
     }
@@ -615,11 +822,14 @@ router.post('/:id/warehouse/import', (req, res) => {
     warehouse.updatedAt = now;
     warehouses[warehouseIndex] = warehouse;
 
-    if (!writeRepresentativeWarehouses(warehouses)) {
+    const warehouseSaved =
+      writeRepresentativeWarehouses(warehouses);
+
+    if (!warehouseSaved) {
       return res.status(500).json({
         success: false,
         error:
-          'ذخیرهٔ اطلاعات انبار نماینده ناموفق بود.',
+          'ذخیره اطلاعات انبار نماینده ناموفق بود.',
       });
     }
 
@@ -633,18 +843,39 @@ router.post('/:id/warehouse/import', (req, res) => {
       return res.status(500).json({
         success: false,
         error:
-          'کالاها ثبت شدند، اما ذخیرهٔ خلاصهٔ نماینده ناموفق بود.',
+          'کالاها ثبت شدند، اما ذخیره خلاصه نماینده ناموفق بود.',
       });
     }
+
+    const acceptedQuantity =
+      acceptedItems.reduce((total, item) => {
+        return total + item.quantity;
+      }, 0);
+
+    const rejectedQuantity =
+      rejectedItems.reduce((total, item) => {
+        return total + item.rejectedQuantity;
+      }, 0);
 
     return res.status(201).json({
       success: true,
       message:
-        'کالاها فقط در انبار همین نماینده ثبت شدند.',
+        'کالاها بر اساس مبلغ ودیعه و چک ضمانت نماینده ثبت شدند.',
       data: {
+        depositAmount,
+        guaranteeCheck,
+        totalFinancialCommitment,
+        warehouseBudget,
+        importedAmount,
+        remainingAmount,
+        acceptedRowsCount: acceptedItems.length,
+        acceptedQuantity,
+        rejectedRowsCount: rejectedItems.length,
+        rejectedQuantity,
         createdCount,
         updatedCount,
-        importedCount: preparedItems.length,
+        importedCount: acceptedItems.length,
+        rejectedItems,
         summary: calculateWarehouseSummary(
           warehouse,
         ),
@@ -652,7 +883,7 @@ router.post('/:id/warehouse/import', (req, res) => {
     });
   } catch (error) {
     console.error(
-      'خطا در ورود اکسل به انبار نماینده:',
+      'خطا در ورود Excel به انبار نماینده:',
       error,
     );
 
@@ -660,16 +891,13 @@ router.post('/:id/warehouse/import', (req, res) => {
       success: false,
       error:
         error.message ||
-        'خطا در ثبت اکسل انبار نماینده.',
+        'خطا در ثبت Excel انبار نماینده.',
     });
   }
 });
 
 /*
   POST /api/representatives/:id/warehouse/movements
-
-  مسیر قدیمی ورود یا خروج کالا باقی مانده است
-  تا بخش‌های دیگر برنامه از کار نیفتند.
 */
 router.post(
   '/:id/warehouse/movements',
@@ -805,11 +1033,20 @@ router.post(
             ? requestedUnitPrice
             : toNumber(product.price);
 
+        if (unitPrice <= 0) {
+          return res.status(400).json({
+            success: false,
+            error:
+              'قیمت محصول برای ورود کالا معتبر نیست.',
+          });
+        }
+
         if (itemIndex < 0) {
           const newItem = {
             id: createRandomId(),
             productId: String(product.id).trim(),
             productName: cleanText(product.name),
+            brand: cleanText(product.brand),
             category: cleanText(product.category),
             quantity,
             unitPrice,
@@ -830,7 +1067,7 @@ router.post(
           const nextQuantity =
             toNumber(oldItem.quantity) + quantity;
 
-          const unitPrice =
+          const finalUnitPrice =
             requestedUnitPrice > 0
               ? requestedUnitPrice
               : toNumber(
@@ -842,10 +1079,16 @@ router.post(
             ...oldItem,
             productId: String(product.id).trim(),
             productName: cleanText(product.name),
-            category: cleanText(product.category),
+            brand: cleanText(
+              oldItem.brand || product.brand,
+            ),
+            category: cleanText(
+              oldItem.category || product.category,
+            ),
             quantity: nextQuantity,
-            unitPrice,
-            totalPrice: nextQuantity * unitPrice,
+            unitPrice: finalUnitPrice,
+            totalPrice:
+              nextQuantity * finalUnitPrice,
             minimumStock,
             status: getWarehouseStatus(
               nextQuantity,
@@ -903,12 +1146,20 @@ router.post(
         ).trim(),
         productId: String(product.id).trim(),
         productName: cleanText(product.name),
-        category: cleanText(product.category),
+        brand: cleanText(
+          savedItem?.brand || product.brand,
+        ),
+        category: cleanText(
+          savedItem?.category || product.category,
+        ),
         type,
         quantity,
         unitPrice: toNumber(
           savedItem?.unitPrice,
         ),
+        rowTotal:
+          quantity *
+          toNumber(savedItem?.unitPrice),
         reason,
         description,
         createdAt: now,

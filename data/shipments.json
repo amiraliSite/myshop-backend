@@ -617,7 +617,7 @@
     "itemsCount": 27,
     "totalItems": 2158,
     "totalValue": 3741900000,
-    "status": "confirmed",
+    "status": "preparing",
     "statusHistory": [
       {
         "status": "registered",
@@ -632,6 +632,13 @@
         "changedAt": "2026-09-30T11:33:36.164Z",
         "changedBy": "admin",
         "note": "وضعیت توسط ادمین تغییر کرد."
+      },
+      {
+        "status": "preparing",
+        "label": "در حال آماده‌سازی",
+        "changedAt": "2026-10-05T14:59:50.464Z",
+        "changedBy": "admin",
+        "note": "وضعیت توسط ادمین تغییر کرد."
       }
     ],
     "sms": {
@@ -640,7 +647,7 @@
       "lastError": null
     },
     "createdAt": "2026-09-30T11:33:30.045Z",
-    "updatedAt": "2026-09-30T11:33:36.164Z"
+    "updatedAt": "2026-10-05T14:59:50.464Z"
   },
   {
     "id": "1790767973868-g6ao5mpv",

@@ -1,5 +1,91 @@
 [
   {
+    "id": "1791219310181-vdtr8pg0",
+    "representativeId": "1791209828640-44n9ffrx",
+    "representativeName": "بهزاد نصیری",
+    "representativeCode": "10014",
+    "representativeCity": "ملایر",
+    "items": [
+      {
+        "id": "1791219310181-l019vzaf",
+        "productId": "1790840082952-m0qqcbuv",
+        "productName": "لنت ترمز جلوی 206 تیپ 5",
+        "brand": "",
+        "category": "",
+        "quantity": 1,
+        "unitPrice": 1050000,
+        "totalPrice": 1050000
+      }
+    ],
+    "itemsCount": 1,
+    "totalQuantity": 1,
+    "totalPrice": 1050000,
+    "productId": "1790840082952-m0qqcbuv",
+    "productName": "لنت ترمز جلوی 206 تیپ 5",
+    "brand": "",
+    "category": "",
+    "quantity": 1,
+    "unitPrice": 1050000,
+    "returnDate": "۱۴۰۵/۰۷/۱۳",
+    "reason": "مرجوعی ثبت‌شده و تأییدشده توسط نماینده",
+    "confirmedReturn": true,
+    "status": "registered",
+    "statusHistory": [
+      {
+        "status": "registered",
+        "label": "ثبت شده",
+        "note": "درخواست مرجوعی توسط نماینده ثبت شد.",
+        "changedBy": "representative",
+        "changedAt": "2026-10-05T16:55:10.181Z"
+      }
+    ],
+    "createdAt": "2026-10-05T16:55:10.181Z",
+    "updatedAt": "2026-10-05T16:55:10.181Z"
+  },
+  {
+    "id": "1791212893417-2esqavvf",
+    "representativeId": "1790651229784-05uzqcph",
+    "representativeName": "رضا",
+    "representativeCode": "10003",
+    "representativeCity": "تهران",
+    "items": [
+      {
+        "id": "1791212893413-j4iue3zp",
+        "productId": "1791183164392-j9li06ug",
+        "productName": "لنت ترمز جلو",
+        "brand": "ایساکو",
+        "category": "لنت ترمز خودرو",
+        "quantity": 1,
+        "unitPrice": 4000000,
+        "totalPrice": 4000000
+      }
+    ],
+    "itemsCount": 1,
+    "totalQuantity": 1,
+    "totalPrice": 4000000,
+    "productId": "1791183164392-j9li06ug",
+    "productName": "لنت ترمز جلو",
+    "brand": "ایساکو",
+    "category": "لنت ترمز خودرو",
+    "quantity": 1,
+    "unitPrice": 4000000,
+    "returnDate": "۱۴۰۵/۰۷/۱۳",
+    "reason": "مرجوعی ثبت‌شده و تأییدشده توسط نماینده",
+    "confirmedReturn": true,
+    "status": "registered",
+    "statusHistory": [
+      {
+        "status": "registered",
+        "label": "ثبت شده",
+        "note": "درخواست مرجوعی توسط نماینده ثبت شد.",
+        "changedBy": "representative",
+        "changedAt": "2026-10-05T15:08:13.417Z"
+      }
+    ],
+    "createdAt": "2026-10-05T15:08:13.413Z",
+    "updatedAt": "2026-10-05T15:08:13.413Z"
+  },
+  {
     "id": "1790747786615-2ciljkjm",
     "representativeId": "1790651229784-05uzqcph",
     "representativeName": "رضا",

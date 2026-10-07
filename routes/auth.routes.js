@@ -19,6 +19,11 @@ const JWT_SECRET =
   process.env.JWT_SECRET ||
   'company-panel-secret-change-this-in-production';
 
+const COOKIE_NAME = 'authToken';
+
+const COOKIE_MAX_AGE =
+  7 * 24 * 60 * 60 * 1000;
+
 function cleanText(value, fallback = '') {
   const text = String(value ?? '').trim();
 
@@ -29,7 +34,11 @@ function sameValue(firstValue, secondValue) {
   const first = normalizeValue(firstValue);
   const second = normalizeValue(secondValue);
 
-  return Boolean(first && second && first === second);
+  return Boolean(
+    first &&
+      second &&
+      first === second,
+  );
 }
 
 function createToken(user) {
@@ -51,21 +60,47 @@ function createToken(user) {
   );
 }
 
+function setAuthCookie(res, token) {
+  return res.cookie(
+    COOKIE_NAME,
+    token,
+    {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: COOKIE_MAX_AGE,
+    },
+  );
+}
+
+function clearAuthCookie(res) {
+  return res.clearCookie(
+    COOKIE_NAME,
+    {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+    },
+  );
+}
+
 async function ensureDefaultAdmin() {
   const admins = readAdmins();
 
-  const adminExists = admins.some((admin) => {
-    return normalizeValue(admin.username) === 'admin';
-  });
+  const adminExists = admins.some(
+    (admin) =>
+      normalizeValue(admin.username) ===
+      'admin',
+  );
 
   if (adminExists) {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(
-    'admin123',
-    10,
-  );
+  const passwordHash =
+    await bcrypt.hash('admin123', 10);
 
   admins.push({
     id: createRandomId(),
@@ -77,175 +112,219 @@ async function ensureDefaultAdmin() {
     updatedAt: new Date().toISOString(),
   });
 
-  writeAdmins(admins);
+  const saved = writeAdmins(admins);
+
+  if (!saved) {
+    throw new Error(
+      'ذخیره ادمین پیش‌فرض ناموفق بود.',
+    );
+  }
 
   console.log(
     '✅ ادمین پیش‌فرض ساخته شد | username: admin | password: admin123',
   );
 }
 
-/*
-  تست Auth API
-
-  GET /api/auth/health
-*/
-router.get('/health', (req, res) => {
-  return res.json({
+router.get('/health', (_req, res) => {
+  return res.status(200).json({
     success: true,
     message: 'Auth API is running.',
   });
 });
 
-/*
-  ورود ادمین
+router.post(
+  '/admin/login',
+  async (req, res) => {
+    try {
+      const username = normalizeValue(
+        req.body?.username,
+      );
 
-  POST /api/auth/admin/login
+      const password = String(
+        req.body?.password || '',
+      );
 
-  Body:
-  {
-    "username": "admin",
-    "password": "admin123"
-  }
-*/
-router.post('/admin/login', async (req, res) => {
-  try {
-    const username = normalizeValue(req.body?.username);
-    const password = String(req.body?.password || '');
+      if (!username || !password) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'نام کاربری و رمز عبور الزامی هستند.',
+        });
+      }
 
-    if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'نام کاربری و رمز عبور الزامی هستند.',
-      });
-    }
+      const admins = readAdmins();
 
-    const admins = readAdmins();
+      const admin = admins.find(
+        (item) =>
+          normalizeValue(
+            item.username,
+          ) === username,
+      );
 
-    const admin = admins.find((item) => {
-      return normalizeValue(item.username) === username;
-    });
+      if (!admin) {
+        return res.status(401).json({
+          success: false,
+          error:
+            'نام کاربری یا رمز عبور اشتباه است.',
+        });
+      }
 
-    if (!admin) {
-      return res.status(401).json({
-        success: false,
-        error: 'نام کاربری یا رمز عبور اشتباه است.',
-      });
-    }
+      if (!admin.passwordHash) {
+        return res.status(500).json({
+          success: false,
+          error:
+            'رمز عبور این حساب در سیستم ثبت نشده است.',
+        });
+      }
 
-    const passwordIsCorrect = await bcrypt.compare(
-      password,
-      admin.passwordHash,
-    );
+      const passwordIsCorrect =
+        await bcrypt.compare(
+          password,
+          admin.passwordHash,
+        );
 
-    if (!passwordIsCorrect) {
-      return res.status(401).json({
-        success: false,
-        error: 'نام کاربری یا رمز عبور اشتباه است.',
-      });
-    }
+      if (!passwordIsCorrect) {
+        return res.status(401).json({
+          success: false,
+          error:
+            'نام کاربری یا رمز عبور اشتباه است.',
+        });
+      }
 
-    const token = createToken({
-      id: admin.id,
-      username: admin.username,
-      role: 'admin',
-    });
-
-    return res.json({
-      success: true,
-      message: 'ورود ادمین با موفقیت انجام شد.',
-      token,
-      user: {
+      const token = createToken({
         id: admin.id,
         username: admin.username,
-        name: admin.name || 'مدیر سیستم',
         role: 'admin',
-      },
-    });
-  } catch (error) {
-    console.error('خطا در ورود ادمین:', error);
-
-    return res.status(500).json({
-      success: false,
-      error: 'خطا در ورود ادمین.',
-    });
-  }
-});
-
-/*
-  ورود نماینده
-
-  POST /api/auth/representative/login
-
-  Body:
-  {
-    "name": "نام نماینده",
-    "code": "1001"
-  }
-*/
-router.post('/representative/login', (req, res) => {
-  try {
-    const name = cleanText(req.body?.name);
-    const code = normalizeValue(req.body?.code);
-
-    if (!name || !code) {
-      return res.status(400).json({
-        success: false,
-        error: 'نام و کد نمایندگی الزامی هستند.',
       });
-    }
 
-    const representatives = readRepresentatives();
+      setAuthCookie(res, token);
 
-    const representative = representatives.find((item) => {
-      return (
-        cleanText(item.name) === name &&
-        sameValue(item.code, code)
+      return res.status(200).json({
+        success: true,
+        message:
+          'ورود ادمین با موفقیت انجام شد.',
+        token,
+        user: {
+          id: admin.id,
+          username: admin.username,
+          name:
+            admin.name || 'مدیر سیستم',
+          role: 'admin',
+        },
+      });
+    } catch (error) {
+      console.error(
+        'خطا در ورود ادمین:',
+        error,
       );
-    });
 
-    if (!representative) {
-      return res.status(401).json({
+      return res.status(500).json({
         success: false,
-        error:
-          'نماینده‌ای با این نام و کد نمایندگی پیدا نشد.',
+        error: 'خطا در ورود ادمین.',
       });
     }
+  },
+);
 
-    if (representative.status === 'inactive') {
-      return res.status(403).json({
-        success: false,
-        error: 'حساب این نماینده غیرفعال است.',
-      });
-    }
+router.post(
+  '/representative/login',
+  (req, res) => {
+    try {
+      const name = cleanText(
+        req.body?.name,
+      );
 
-    const token = createToken({
-      id: representative.id,
-      representativeId: representative.id,
-      role: 'representative',
-    });
+      const code = normalizeValue(
+        req.body?.code,
+      );
 
-    return res.json({
-      success: true,
-      message: 'ورود نماینده با موفقیت انجام شد.',
-      token,
-      user: {
+      if (!name || !code) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'نام و کد نمایندگی الزامی هستند.',
+        });
+      }
+
+      const representatives =
+        readRepresentatives();
+
+      const representative =
+        representatives.find(
+          (item) =>
+            cleanText(item.name) === name &&
+            sameValue(item.code, code),
+        );
+
+      if (!representative) {
+        return res.status(401).json({
+          success: false,
+          error:
+            'نماینده‌ای با این نام و کد نمایندگی پیدا نشد.',
+        });
+      }
+
+      if (
+        representative.status ===
+        'inactive'
+      ) {
+        return res.status(403).json({
+          success: false,
+          error:
+            'حساب این نماینده غیرفعال است.',
+        });
+      }
+
+      const token = createToken({
         id: representative.id,
-        representativeId: representative.id,
-        name: representative.name || '',
-        code: representative.code || '',
-        city: representative.city || '',
-        phone: representative.phone || '',
+        representativeId:
+          representative.id,
         role: 'representative',
-      },
-    });
-  } catch (error) {
-    console.error('خطا در ورود نماینده:', error);
+      });
 
-    return res.status(500).json({
-      success: false,
-      error: 'خطا در ورود نماینده.',
-    });
-  }
+      setAuthCookie(res, token);
+
+      return res.status(200).json({
+        success: true,
+        message:
+          'ورود نماینده با موفقیت انجام شد.',
+        token,
+        user: {
+          id: representative.id,
+          representativeId:
+            representative.id,
+          name:
+            representative.name || '',
+          code:
+            representative.code || '',
+          city:
+            representative.city || '',
+          phone:
+            representative.phone || '',
+          role: 'representative',
+        },
+      });
+    } catch (error) {
+      console.error(
+        'خطا در ورود نماینده:',
+        error,
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: 'خطا در ورود نماینده.',
+      });
+    }
+  },
+);
+
+router.post('/logout', (req, res) => {
+  clearAuthCookie(res);
+
+  return res.status(200).json({
+    success: true,
+    message: 'با موفقیت خارج شدید.',
+  });
 });
 
 ensureDefaultAdmin().catch((error) => {

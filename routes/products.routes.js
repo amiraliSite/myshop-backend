@@ -32,11 +32,11 @@ const excelUpload = multer({
       file?.originalname || '',
     ).toLowerCase();
 
-    const isExcelFile =
+    const valid =
       fileName.endsWith('.xlsx') ||
       fileName.endsWith('.xls');
 
-    if (!isExcelFile) {
+    if (!valid) {
       callback(
         new Error(
           'فقط فایل‌های اکسل با فرمت .xlsx یا .xls قابل آپلود هستند.',
@@ -50,31 +50,17 @@ const excelUpload = multer({
   },
 });
 
-function hasValue(value) {
-  return (
-    value !== null &&
-    value !== undefined &&
-    String(value).trim() !== ''
-  );
-}
-
 function cleanText(value, fallback = '') {
   const text = String(value ?? '').trim();
 
   return text || fallback;
 }
 
-/*
-  تبدیل قیمت به عدد.
-
-  اگر قیمت خالی، نامعتبر یا غیرعددی باشد:
-  مقدار 0 برمی‌گرداند.
-
-  بنابراین تمام محصولاتی که عنوان دارند ثبت می‌شوند،
-  حتی اگر قیمت در Excel خالی باشد.
-*/
 function parsePrice(value, fallback = 0) {
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return fallback;
   }
 
@@ -84,18 +70,18 @@ function parsePrice(value, fallback = 0) {
       : fallback;
   }
 
-  const normalizedValue = String(
+  const normalized = String(
     toEnglishDigits(String(value)),
   )
     .replace(/[٬،,\s]/g, '')
     .replace(/[^0-9.-]/g, '')
     .trim();
 
-  if (!normalizedValue) {
+  if (!normalized) {
     return fallback;
   }
 
-  const price = Number(normalizedValue);
+  const price = Number(normalized);
 
   return Number.isFinite(price)
     ? price
@@ -117,56 +103,46 @@ function normalizeExcelHeader(value) {
     .toLowerCase();
 }
 
-function getExcelColumnValue(row, expectedHeaders = []) {
+function getExcelColumnValue(
+  row,
+  expectedHeaders = [],
+) {
   const entries = Object.entries(row || {});
 
-  /*
-    تطبیق دقیق.
-  */
   for (const expectedHeader of expectedHeaders) {
-    const expected = normalizeExcelHeader(
-      expectedHeader,
-    );
+    const expected =
+      normalizeExcelHeader(expectedHeader);
 
     const found = entries.find(([key]) => {
-      return normalizeExcelHeader(key) === expected;
+      return (
+        normalizeExcelHeader(key) ===
+        expected
+      );
     });
 
     if (found) {
-      /*
-        اینجا حتی اگر مقدار سلول خالی یا صفر باشد، برگردانده می‌شود.
-      */
       return found[1];
     }
   }
 
-  /*
-    تطبیق منعطف.
-
-    مثال:
-    قیمت محصول (تومان)
-    با
-    قیمت محصول
-    تطبیق دارد.
-  */
   for (const expectedHeader of expectedHeaders) {
-    const expected = normalizeExcelHeader(
-      expectedHeader,
-    );
+    const expected =
+      normalizeExcelHeader(expectedHeader);
 
     const found = entries.find(([key]) => {
-      const header = normalizeExcelHeader(key);
+      const actual =
+        normalizeExcelHeader(key);
 
       if (
         expected.length < 2 ||
-        header.length < 2
+        actual.length < 2
       ) {
         return false;
       }
 
       return (
-        header.includes(expected) ||
-        expected.includes(header)
+        actual.includes(expected) ||
+        expected.includes(actual)
       );
     });
 
@@ -178,15 +154,6 @@ function getExcelColumnValue(row, expectedHeaders = []) {
   return '';
 }
 
-/*
-  تبدیل یک ردیف Excel به شکل محصول.
-
-  ستون‌های اصلی:
-
-  عنوان محصول
-  قیمت محصول
-  دسته‌بندی
-*/
 function mapExcelRowToProduct(row) {
   return {
     name: getExcelColumnValue(row, [
@@ -238,8 +205,12 @@ function getProductName(product) {
   );
 }
 
-function findProductIndexByName(products, productName) {
-  const normalizedName = normalizeValue(productName);
+function findProductIndexByName(
+  products,
+  productName,
+) {
+  const normalizedName =
+    normalizeValue(productName);
 
   if (!normalizedName) {
     return -1;
@@ -247,8 +218,9 @@ function findProductIndexByName(products, productName) {
 
   return products.findIndex((product) => {
     return (
-      normalizeValue(getProductName(product)) ===
-      normalizedName
+      normalizeValue(
+        getProductName(product),
+      ) === normalizedName
     );
   });
 }
@@ -262,25 +234,15 @@ function createProduct({
 
   return {
     id: createRandomId(),
-
     name: cleanText(name),
-
     code: '',
-
     price: parsePrice(price, 0),
-
     quantity: 0,
-
     category: cleanText(category),
-
     description: '',
-
     image: '',
-
     active: true,
-
     createdAt: now,
-
     updatedAt: now,
   };
 }
@@ -295,29 +257,53 @@ function updateProduct(
 ) {
   return {
     ...oldProduct,
-
-    name: cleanText(name, oldProduct.name),
-
-    /*
-      قیمت جدید جایگزین قیمت قبلی می‌شود.
-      اگر قیمت Excel خالی باشد، قیمت محصول صفر می‌شود.
-    */
+    name: cleanText(
+      name,
+      oldProduct.name,
+    ),
     price: parsePrice(price, 0),
-
     category: cleanText(
       category,
       oldProduct.category || '',
     ),
-
     active: oldProduct.active !== false,
-
     updatedAt: new Date().toISOString(),
   };
 }
 
-/*
-  آپلود Excel و ثبت قیمت‌ها.
+function makeUploadData({
+  fileName,
+  sheetName,
+  totalRows,
+  createdCount,
+  updatedCount,
+  unchangedCount,
+  zeroPriceCount,
+  skippedCount,
+  totalProducts,
+  createdProducts,
+  updatedProducts,
+  unchangedProducts,
+  skippedRows,
+}) {
+  return {
+    fileName,
+    sheetName,
+    totalRows,
+    createdCount,
+    updatedCount,
+    unchangedCount,
+    zeroPriceCount,
+    skippedCount,
+    totalProducts,
+    createdProducts,
+    updatedProducts,
+    unchangedProducts,
+    skippedRows,
+  };
+}
 
+/*
   POST /api/products/upload
 */
 router.post(
@@ -333,13 +319,17 @@ router.post(
         });
       }
 
-      const workbook = XLSX.read(req.file.buffer, {
-        type: 'buffer',
-      });
+      const workbook = XLSX.read(
+        req.file.buffer,
+        {
+          type: 'buffer',
+        },
+      );
 
-      const firstSheetName = workbook.SheetNames[0];
+      const sheetName =
+        workbook.SheetNames[0];
 
-      if (!firstSheetName) {
+      if (!sheetName) {
         return res.status(400).json({
           success: false,
           error:
@@ -347,17 +337,19 @@ router.post(
         });
       }
 
-      const worksheet = workbook.Sheets[firstSheetName];
+      const worksheet =
+        workbook.Sheets[sheetName];
 
-      const excelRows = XLSX.utils.sheet_to_json(
-        worksheet,
-        {
-          defval: '',
-          raw: true,
-        },
-      );
+      const rows =
+        XLSX.utils.sheet_to_json(
+          worksheet,
+          {
+            defval: '',
+            raw: true,
+          },
+        );
 
-      if (!excelRows.length) {
+      if (!rows.length) {
         return res.status(400).json({
           success: false,
           error:
@@ -367,82 +359,96 @@ router.post(
 
       const products = readProducts();
 
+      if (!Array.isArray(products)) {
+        return res.status(500).json({
+          success: false,
+          error:
+            'ساختار فایل محصولات معتبر نیست.',
+        });
+      }
+
       let createdCount = 0;
       let updatedCount = 0;
       let unchangedCount = 0;
       let zeroPriceCount = 0;
       let skippedCount = 0;
 
-      const errors = [];
+      const createdProducts = [];
+      const updatedProducts = [];
+      const unchangedProducts = [];
+      const skippedRows = [];
 
-      excelRows.forEach((excelRow, index) => {
+      rows.forEach((row, index) => {
         const rowNumber = index + 2;
 
         try {
-          const rowData = mapExcelRowToProduct(excelRow);
+          const rowData =
+            mapExcelRowToProduct(row);
 
-          const name = cleanText(rowData.name);
+          const name = cleanText(
+            rowData.name,
+          );
 
           const category = cleanText(
             rowData.category,
           );
 
-          /*
-            قیمت خالی، غیرعددی یا صفر:
-            همگی در نهایت 0 می‌شوند.
-          */
           const price = parsePrice(
             rowData.price,
             0,
           );
 
-          /*
-            فقط محصولی که عنوان ندارد رد می‌شود.
-          */
           if (!name) {
             skippedCount += 1;
 
-            errors.push({
+            skippedRows.push({
               row: rowNumber,
-              error:
-                'عنوان محصول خالی است و این ردیف ثبت نشد.',
+              reason:
+                'عنوان محصول خالی است.',
             });
 
             return;
           }
 
-          /*
-            آمار محصولاتی که قیمت صفر دارند.
-          */
           if (price === 0) {
             zeroPriceCount += 1;
           }
 
-          const productIndex = findProductIndexByName(
-            products,
-            name,
-          );
-
-          /*
-            محصول جدید.
-          */
-          if (productIndex < 0) {
-            const newProduct = createProduct({
+          const productIndex =
+            findProductIndexByName(
+              products,
               name,
-              price,
-              category,
-            });
+            );
+
+          if (productIndex < 0) {
+            const newProduct =
+              createProduct({
+                name,
+                price,
+                category,
+              });
 
             products.push(newProduct);
 
-            syncProductToWarehouse(newProduct);
+            syncProductToWarehouse(
+              newProduct,
+            );
 
             createdCount += 1;
+
+            createdProducts.push({
+              row: rowNumber,
+              id: newProduct.id,
+              name: newProduct.name,
+              price: newProduct.price,
+              category: newProduct.category,
+            });
 
             return;
           }
 
-          const oldProduct = products[productIndex];
+          const oldProduct =
+            products[productIndex];
 
           const oldPrice = parsePrice(
             oldProduct.price,
@@ -453,76 +459,163 @@ router.post(
             oldProduct.category,
           );
 
-          /*
-            محصول تکراری با اطلاعات دقیقاً مشابه.
-          */
           if (
             oldPrice === price &&
             oldCategory === category
           ) {
             unchangedCount += 1;
 
+            unchangedProducts.push({
+              row: rowNumber,
+              id: oldProduct.id,
+              name: getProductName(
+                oldProduct,
+              ),
+              price: oldPrice,
+              category: oldCategory,
+            });
+
             return;
           }
 
-          /*
-            محصول با قیمت یا دسته‌بندی جدید.
+          const updatedProduct =
+            updateProduct(
+              oldProduct,
+              {
+                name,
+                price,
+                category,
+              },
+            );
 
-            اگر قیمت Excel خالی باشد، قیمت قبلی به 0 تغییر می‌کند.
-          */
-          const updatedProduct = updateProduct(
-            oldProduct,
-            {
-              name,
-              price,
-              category,
-            },
+          products[productIndex] =
+            updatedProduct;
+
+          syncProductToWarehouse(
+            updatedProduct,
           );
 
-          products[productIndex] = updatedProduct;
-
-          syncProductToWarehouse(updatedProduct);
-
           updatedCount += 1;
-        } catch (rowError) {
+
+          updatedProducts.push({
+            row: rowNumber,
+            id: updatedProduct.id,
+            name: updatedProduct.name,
+            oldPrice,
+            newPrice: updatedProduct.price,
+            oldCategory,
+            newCategory:
+              updatedProduct.category,
+          });
+        } catch (error) {
           skippedCount += 1;
 
-          errors.push({
+          skippedRows.push({
             row: rowNumber,
-            error:
-              rowError?.message ||
-              'خطا در پردازش این ردیف Excel.',
+            reason:
+              error?.message ||
+              'خطا در پردازش ردیف.',
           });
         }
       });
 
-      /*
-        ذخیره محصولات در:
+      const hasChanges =
+        createdCount > 0 ||
+        updatedCount > 0;
 
-        backend/data/products.json
-      */
-      writeProducts(products);
+      if (!hasChanges) {
+        return res.status(400).json({
+          success: false,
+          error:
+            unchangedCount > 0
+              ? 'همه محصولات فایل از قبل وجود داشتند و تغییری نداشتند.'
+              : 'هیچ محصولی از فایل ثبت نشد.',
+          data: makeUploadData({
+            fileName:
+              req.file.originalname,
+            sheetName,
+            totalRows: rows.length,
+            createdCount,
+            updatedCount,
+            unchangedCount,
+            zeroPriceCount,
+            skippedCount,
+            totalProducts:
+              products.length,
+            createdProducts,
+            updatedProducts,
+            unchangedProducts,
+            skippedRows,
+          }),
+        });
+      }
+
+      const writeResult =
+        writeProducts(products);
+
+      if (writeResult === false) {
+        throw new Error(
+          'ذخیره محصولات انجام نشد.',
+        );
+      }
+
+      const savedProducts =
+        readProducts();
+
+      if (
+        !Array.isArray(savedProducts)
+      ) {
+        throw new Error(
+          'محصولات ذخیره‌شده قابل خواندن نیستند.',
+        );
+      }
+
+      if (
+        savedProducts.length !==
+        products.length
+      ) {
+        throw new Error(
+          'تعداد محصولات ذخیره‌شده با تعداد مورد انتظار برابر نیست.',
+        );
+      }
+
+      console.log(
+        '✅ نتیجه آپلود:',
+        {
+          createdCount,
+          updatedCount,
+          unchangedCount,
+          skippedCount,
+          totalProducts:
+            savedProducts.length,
+        },
+      );
 
       return res.status(200).json({
         success: true,
-        message: 'فایل Excel با موفقیت پردازش شد.',
-
-        data: {
-          fileName: req.file.originalname,
-          sheetName: firstSheetName,
-          totalRows: excelRows.length,
+        message:
+          'فایل Excel با موفقیت پردازش و ذخیره شد.',
+        data: makeUploadData({
+          fileName:
+            req.file.originalname,
+          sheetName,
+          totalRows: rows.length,
           createdCount,
           updatedCount,
           unchangedCount,
           zeroPriceCount,
           skippedCount,
-          totalProducts: products.length,
-          errors,
-        },
+          totalProducts:
+            savedProducts.length,
+          createdProducts,
+          updatedProducts,
+          unchangedProducts,
+          skippedRows,
+        }),
       });
     } catch (error) {
       console.error(
-        'خطا در آپلود Excel:',
+        '❌ خطا در آپلود Excel:',
         error,
       );
 
@@ -537,31 +630,37 @@ router.post(
 );
 
 /*
-  دریافت لیست محصولات.
-
   GET /api/products
 */
 router.get('/', (_req, res) => {
   try {
     const products = readProducts();
 
-    const sortedProducts = [...products].sort(
-      (first, second) => {
-        const firstDate = new Date(
-          first.updatedAt ||
-            first.createdAt ||
-            0,
-        ).getTime();
+    if (!Array.isArray(products)) {
+      return res.status(500).json({
+        success: false,
+        error:
+          'ساختار فایل محصولات معتبر نیست.',
+      });
+    }
 
-        const secondDate = new Date(
-          second.updatedAt ||
-            second.createdAt ||
-            0,
-        ).getTime();
+    const sortedProducts = [
+      ...products,
+    ].sort((first, second) => {
+      const firstDate = new Date(
+        first.updatedAt ||
+          first.createdAt ||
+          0,
+      ).getTime();
 
-        return secondDate - firstDate;
-      },
-    );
+      const secondDate = new Date(
+        second.updatedAt ||
+          second.createdAt ||
+          0,
+      ).getTime();
+
+      return secondDate - firstDate;
+    });
 
     return res.status(200).json({
       success: true,
@@ -569,16 +668,20 @@ router.get('/', (_req, res) => {
       data: sortedProducts,
     });
   } catch (error) {
+    console.error(
+      '❌ خطا در دریافت محصولات:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
-      error: 'خطا در دریافت لیست محصولات.',
+      error:
+        'خطا در دریافت لیست محصولات.',
     });
   }
 });
 
 /*
-  دریافت یک محصول.
-
   GET /api/products/:id
 */
 router.get('/:id', (req, res) => {
@@ -590,7 +693,9 @@ router.get('/:id', (req, res) => {
     const products = readProducts();
 
     const product = products.find((item) => {
-      return String(item.id || '') === productId;
+      return (
+        String(item.id || '') === productId
+      );
     });
 
     if (!product) {
@@ -607,14 +712,13 @@ router.get('/:id', (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      error: 'خطا در دریافت محصول.',
+      error:
+        'خطا در دریافت محصول.',
     });
   }
 });
 
 /*
-  ساخت دستی محصول.
-
   POST /api/products
 */
 router.post('/', (req, res) => {
@@ -640,32 +744,45 @@ router.post('/', (req, res) => {
     if (!name) {
       return res.status(400).json({
         success: false,
-        error: 'نام محصول الزامی است.',
+        error:
+          'نام محصول الزامی است.',
       });
     }
 
     const products = readProducts();
 
-    const productIndex = findProductIndexByName(
-      products,
-      name,
-    );
-
-    if (productIndex >= 0) {
-      const updatedProduct = updateProduct(
-        products[productIndex],
-        {
-          name,
-          price,
-          category,
-        },
+    const productIndex =
+      findProductIndexByName(
+        products,
+        name,
       );
 
-      products[productIndex] = updatedProduct;
+    if (productIndex >= 0) {
+      const updatedProduct =
+        updateProduct(
+          products[productIndex],
+          {
+            name,
+            price,
+            category,
+          },
+        );
 
-      writeProducts(products);
+      products[productIndex] =
+        updatedProduct;
 
-      syncProductToWarehouse(updatedProduct);
+      const writeResult =
+        writeProducts(products);
+
+      if (writeResult === false) {
+        throw new Error(
+          'ذخیره محصول انجام نشد.',
+        );
+      }
+
+      syncProductToWarehouse(
+        updatedProduct,
+      );
 
       return res.status(200).json({
         success: true,
@@ -676,35 +793,51 @@ router.post('/', (req, res) => {
       });
     }
 
-    const newProduct = createProduct({
-      name,
-      price,
-      category,
-    });
+    const newProduct =
+      createProduct({
+        name,
+        price,
+        category,
+      });
 
     products.push(newProduct);
 
-    writeProducts(products);
+    const writeResult =
+      writeProducts(products);
 
-    syncProductToWarehouse(newProduct);
+    if (writeResult === false) {
+      throw new Error(
+        'ذخیره محصول انجام نشد.',
+      );
+    }
+
+    syncProductToWarehouse(
+      newProduct,
+    );
 
     return res.status(201).json({
       success: true,
       created: true,
-      message: 'محصول جدید ثبت شد.',
+      message:
+        'محصول جدید ثبت شد.',
       data: newProduct,
     });
   } catch (error) {
+    console.error(
+      '❌ خطا در ثبت دستی محصول:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
-      error: 'خطا در ثبت محصول.',
+      error:
+        error?.message ||
+        'خطا در ثبت محصول.',
     });
   }
 });
 
 /*
-  ویرایش محصول.
-
   PUT /api/products/:id
 */
 router.put('/:id', (req, res) => {
@@ -715,9 +848,13 @@ router.put('/:id', (req, res) => {
 
     const products = readProducts();
 
-    const productIndex = products.findIndex((item) => {
-      return String(item.id || '') === productId;
-    });
+    const productIndex =
+      products.findIndex((item) => {
+        return (
+          String(item.id || '') ===
+          productId
+        );
+      });
 
     if (productIndex < 0) {
       return res.status(404).json({
@@ -726,7 +863,8 @@ router.put('/:id', (req, res) => {
       });
     }
 
-    const oldProduct = products[productIndex];
+    const oldProduct =
+      products[productIndex];
 
     const name = cleanText(
       req.body?.name ||
@@ -751,22 +889,25 @@ router.put('/:id', (req, res) => {
     if (!name) {
       return res.status(400).json({
         success: false,
-        error: 'نام محصول الزامی است.',
+        error:
+          'نام محصول الزامی است.',
       });
     }
 
-    const duplicateIndex = products.findIndex(
-      (item, index) => {
-        if (index === productIndex) {
-          return false;
-        }
+    const duplicateIndex =
+      products.findIndex(
+        (item, index) => {
+          if (index === productIndex) {
+            return false;
+          }
 
-        return (
-          normalizeValue(getProductName(item)) ===
-          normalizeValue(name)
-        );
-      },
-    );
+          return (
+            normalizeValue(
+              getProductName(item),
+            ) === normalizeValue(name)
+          );
+        },
+      );
 
     if (duplicateIndex >= 0) {
       return res.status(409).json({
@@ -776,37 +917,54 @@ router.put('/:id', (req, res) => {
       });
     }
 
-    const updatedProduct = updateProduct(
-      oldProduct,
-      {
-        name,
-        price,
-        category,
-      },
+    const updatedProduct =
+      updateProduct(
+        oldProduct,
+        {
+          name,
+          price,
+          category,
+        },
+      );
+
+    products[productIndex] =
+      updatedProduct;
+
+    const writeResult =
+      writeProducts(products);
+
+    if (writeResult === false) {
+      throw new Error(
+        'ذخیره ویرایش محصول انجام نشد.',
+      );
+    }
+
+    syncProductToWarehouse(
+      updatedProduct,
     );
-
-    products[productIndex] = updatedProduct;
-
-    writeProducts(products);
-
-    syncProductToWarehouse(updatedProduct);
 
     return res.status(200).json({
       success: true,
-      message: 'محصول با موفقیت ویرایش شد.',
+      message:
+        'محصول با موفقیت ویرایش شد.',
       data: updatedProduct,
     });
   } catch (error) {
+    console.error(
+      '❌ خطا در ویرایش محصول:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
-      error: 'خطا در ویرایش محصول.',
+      error:
+        error?.message ||
+        'خطا در ویرایش محصول.',
     });
   }
 });
 
 /*
-  غیرفعال‌کردن محصول.
-
   DELETE /api/products/:id
 */
 router.delete('/:id', (req, res) => {
@@ -817,14 +975,19 @@ router.delete('/:id', (req, res) => {
 
     const products = readProducts();
 
-    const productIndex = products.findIndex((item) => {
-      return String(item.id || '') === productId;
-    });
+    const productIndex =
+      products.findIndex((item) => {
+        return (
+          String(item.id || '') ===
+          productId
+        );
+      });
 
     if (productIndex < 0) {
       return res.status(404).json({
         success: false,
-        error: 'محصول پیدا نشد.',
+        error:
+          'محصول پیدا نشد.',
       });
     }
 
@@ -834,21 +997,37 @@ router.delete('/:id', (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    products[productIndex] = deletedProduct;
+    products[productIndex] =
+      deletedProduct;
 
-    writeProducts(products);
+    const writeResult =
+      writeProducts(products);
+
+    if (writeResult === false) {
+      throw new Error(
+        'ذخیره حذف محصول انجام نشد.',
+      );
+    }
 
     deactivateWarehouseItem(productId);
 
     return res.status(200).json({
       success: true,
-      message: 'محصول غیرفعال شد.',
+      message:
+        'محصول غیرفعال شد.',
       data: deletedProduct,
     });
   } catch (error) {
+    console.error(
+      '❌ خطا در حذف محصول:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
-      error: 'خطا در حذف محصول.',
+      error:
+        error?.message ||
+        'خطا در حذف محصول.',
     });
   }
 });

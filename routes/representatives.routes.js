@@ -24,8 +24,13 @@ const REPRESENTATIVES_DIR = path.join(
 );
 
 function requireAdmin(req, res, next) {
-  const authorization = String(req.headers.authorization || '');
-  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  const authorization = String(
+    req.headers.authorization || '',
+  );
+
+  const match = authorization.match(
+    /^Bearer\s+(.+)$/i,
+  );
 
   if (!match) {
     return res.status(401).json({
@@ -37,7 +42,10 @@ function requireAdmin(req, res, next) {
   const secret = process.env.JWT_SECRET;
 
   if (!secret) {
-    console.error('JWT_SECRET در بک‌اند تنظیم نشده است.');
+    console.error(
+      'JWT_SECRET در بک‌اند تنظیم نشده است.',
+    );
+
     return res.status(500).json({
       success: false,
       error: 'تنظیمات احراز هویت سرور ناقص است.',
@@ -66,7 +74,8 @@ function requireAdmin(req, res, next) {
   } catch {
     return res.status(401).json({
       success: false,
-      error: 'نشست شما منقضی یا نامعتبر است؛ دوباره وارد شوید.',
+      error:
+        'نشست شما منقضی یا نامعتبر است؛ دوباره وارد شوید.',
     });
   }
 }
@@ -74,6 +83,7 @@ function requireAdmin(req, res, next) {
 function sameId(first, second) {
   const a = normalizeValue(first);
   const b = normalizeValue(second);
+
   return Boolean(a && b && a === b);
 }
 
@@ -83,7 +93,10 @@ function cleanText(value) {
 
 function toNonNegativeNumber(value) {
   const number = Number(value);
-  return Number.isFinite(number) && number >= 0 ? number : 0;
+
+  return Number.isFinite(number) && number >= 0
+    ? number
+    : 0;
 }
 
 function publicRepresentative(representative) {
@@ -106,10 +119,13 @@ function getValidFolderNumber(value) {
 }
 
 function getFolderPath(folderNumber) {
-  const validNumber = getValidFolderNumber(folderNumber);
+  const validNumber =
+    getValidFolderNumber(folderNumber);
 
   if (validNumber === null) {
-    throw new Error('شمارهٔ پوشهٔ نماینده نامعتبر است.');
+    throw new Error(
+      'شمارهٔ پوشهٔ نماینده نامعتبر است.',
+    );
   }
 
   return path.join(
@@ -122,7 +138,9 @@ function getNextFolderNumber(representatives) {
   const usedNumbers = new Set(
     representatives
       .map((representative) =>
-        getValidFolderNumber(representative.folderNumber),
+        getValidFolderNumber(
+          representative.folderNumber,
+        ),
       )
       .filter((number) => number !== null),
   );
@@ -141,6 +159,7 @@ function getNextFolderNumber(representatives) {
 
 const editableFields = [
   'name',
+  'province',
   'phone',
   'city',
   'code',
@@ -167,20 +186,39 @@ function getEditableData(body = {}) {
   const data = {};
 
   for (const field of editableFields) {
-    if (Object.prototype.hasOwnProperty.call(body, field)) {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        body,
+        field,
+      )
+    ) {
       data[field] = cleanText(body[field]);
     }
   }
 
   for (const field of numericFields) {
-    if (Object.prototype.hasOwnProperty.call(body, field)) {
-      data[field] = toNonNegativeNumber(body[field]);
+    if (
+      Object.prototype.hasOwnProperty.call(
+        body,
+        field,
+      )
+    ) {
+      data[field] = toNonNegativeNumber(
+        body[field],
+      );
     }
   }
 
-  if (Object.prototype.hasOwnProperty.call(body, 'status')) {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      body,
+      'status',
+    )
+  ) {
     data.status =
-      body.status === 'inactive' ? 'inactive' : 'active';
+      body.status === 'inactive'
+        ? 'inactive'
+        : 'active';
   }
 
   return data;
@@ -190,15 +228,22 @@ router.use(requireAdmin);
 
 router.get('/', (_req, res) => {
   try {
-    const representatives = readRepresentatives();
+    const representatives =
+      readRepresentatives();
 
     return res.status(200).json({
       success: true,
       count: representatives.length,
-      data: representatives.map(publicRepresentative),
+      data: representatives.map(
+        publicRepresentative,
+      ),
     });
   } catch (error) {
-    console.error('خطا در دریافت نمایندگان:', error);
+    console.error(
+      'خطا در دریافت نمایندگان:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
       error: 'دریافت نمایندگان ناموفق بود.',
@@ -212,29 +257,41 @@ router.post('/', (req, res) => {
   try {
     const data = getEditableData(req.body);
 
-    if (!data.name || !data.phone || !data.city || !data.code) {
+    if (
+      !data.name ||
+      !data.phone ||
+      !data.province ||
+      !data.city ||
+      !data.code
+    ) {
       return res.status(400).json({
         success: false,
-        error: 'نام، تلفن، شهر و کد نمایندگی الزامی است.',
+        error:
+          'نام، تلفن، استان، شهر و کد نمایندگی الزامی است.',
       });
     }
 
-    const representatives = readRepresentatives();
+    const representatives =
+      readRepresentatives();
 
-    if (
+    const duplicateCode =
       representatives.some((representative) =>
-        sameId(representative.code, data.code),
-      )
-    ) {
+        sameId(
+          representative.code,
+          data.code,
+        ),
+      );
+
+    if (duplicateCode) {
       return res.status(409).json({
         success: false,
-        error: 'این کد نمایندگی قبلاً ثبت شده است.',
+        error:
+          'این کد نمایندگی قبلاً ثبت شده است.',
       });
     }
 
-    const folderNumber = getNextFolderNumber(
-      representatives,
-    );
+    const folderNumber =
+      getNextFolderNumber(representatives);
 
     const now = new Date().toISOString();
 
@@ -251,25 +308,31 @@ router.post('/', (req, res) => {
       recursive: true,
     });
 
-    const folderPath = getFolderPath(folderNumber);
+    const folderPath =
+      getFolderPath(folderNumber);
 
     if (fs.existsSync(folderPath)) {
       return res.status(409).json({
         success: false,
-        error: 'پوشهٔ این شماره از قبل وجود دارد.',
+        error:
+          'پوشهٔ این شماره از قبل وجود دارد.',
       });
     }
 
     fs.mkdirSync(folderPath);
     createdFolder = folderPath;
 
-    if (
-      !writeRepresentatives([
-        ...representatives,
-        newRepresentative,
-      ])
-    ) {
-      fs.rmdirSync(folderPath);
+    const saved = writeRepresentatives([
+      ...representatives,
+      newRepresentative,
+    ]);
+
+    if (!saved) {
+      fs.rmSync(folderPath, {
+        recursive: true,
+        force: true,
+      });
+
       createdFolder = null;
 
       return res.status(500).json({
@@ -280,12 +343,17 @@ router.post('/', (req, res) => {
 
     return res.status(201).json({
       success: true,
-      data: publicRepresentative(newRepresentative),
+      data: publicRepresentative(
+        newRepresentative,
+      ),
     });
   } catch (error) {
     if (createdFolder) {
       try {
-        fs.rmdirSync(createdFolder);
+        fs.rmSync(createdFolder, {
+          recursive: true,
+          force: true,
+        });
       } catch (cleanupError) {
         console.error(
           'پاک‌سازی پوشهٔ تازه‌ساخته‌شده ناموفق بود:',
@@ -294,7 +362,10 @@ router.post('/', (req, res) => {
       }
     }
 
-    console.error('خطا در ثبت نماینده:', error);
+    console.error(
+      'خطا در ثبت نماینده:',
+      error,
+    );
 
     return res.status(500).json({
       success: false,
@@ -305,11 +376,15 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   try {
-    const representatives = readRepresentatives();
+    const representatives =
+      readRepresentatives();
 
     const index = representatives.findIndex(
       (representative) =>
-        sameId(representative.id, req.params.id),
+        sameId(
+          representative.id,
+          req.params.id,
+        ),
     );
 
     if (index < 0) {
@@ -328,6 +403,10 @@ router.put('/:id', (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
+    /*
+     * استان در ویرایش اجباری نیست تا نمایندگان
+     * قدیمی که استان ندارند همچنان قابل ویرایش باشند.
+     */
     if (
       !updated.name ||
       !updated.phone ||
@@ -336,26 +415,38 @@ router.put('/:id', (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        error: 'نام، تلفن، شهر و کد نمایندگی الزامی است.',
+        error:
+          'نام، تلفن، شهر و کد نمایندگی الزامی است.',
       });
     }
 
-    if (
+    const duplicateCode =
       representatives.some(
-        (representative, representativeIndex) =>
+        (
+          representative,
+          representativeIndex,
+        ) =>
           representativeIndex !== index &&
-          sameId(representative.code, updated.code),
-      )
-    ) {
+          sameId(
+            representative.code,
+            updated.code,
+          ),
+      );
+
+    if (duplicateCode) {
       return res.status(409).json({
         success: false,
-        error: 'این کد نمایندگی قبلاً ثبت شده است.',
+        error:
+          'این کد نمایندگی قبلاً ثبت شده است.',
       });
     }
 
     representatives[index] = updated;
 
-    if (!writeRepresentatives(representatives)) {
+    const saved =
+      writeRepresentatives(representatives);
+
+    if (!saved) {
       return res.status(500).json({
         success: false,
         error: 'ویرایش نماینده ذخیره نشد.',
@@ -367,7 +458,11 @@ router.put('/:id', (req, res) => {
       data: publicRepresentative(updated),
     });
   } catch (error) {
-    console.error('خطا در ویرایش نماینده:', error);
+    console.error(
+      'خطا در ویرایش نماینده:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
       error: 'ویرایش نماینده ناموفق بود.',
@@ -377,11 +472,13 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   try {
-    const representatives = readRepresentatives();
+    const representatives =
+      readRepresentatives();
 
-    const representative = representatives.find(
-      (item) => sameId(item.id, req.params.id),
-    );
+    const representative =
+      representatives.find((item) =>
+        sameId(item.id, req.params.id),
+      );
 
     if (!representative) {
       return res.status(404).json({
@@ -390,9 +487,10 @@ router.delete('/:id', (req, res) => {
       });
     }
 
-    const folderNumber = getValidFolderNumber(
-      representative.folderNumber,
-    );
+    const folderNumber =
+      getValidFolderNumber(
+        representative.folderNumber,
+      );
 
     if (folderNumber === null) {
       return res.status(409).json({
@@ -402,12 +500,17 @@ router.delete('/:id', (req, res) => {
       });
     }
 
-    const folderIsShared = representatives.some(
-      (item) =>
-        !sameId(item.id, representative.id) &&
-        getValidFolderNumber(item.folderNumber) ===
-          folderNumber,
-    );
+    const folderIsShared =
+      representatives.some(
+        (item) =>
+          !sameId(
+            item.id,
+            representative.id,
+          ) &&
+          getValidFolderNumber(
+            item.folderNumber,
+          ) === folderNumber,
+      );
 
     if (folderIsShared) {
       return res.status(409).json({
@@ -417,12 +520,16 @@ router.delete('/:id', (req, res) => {
       });
     }
 
-    const folderPath = getFolderPath(folderNumber);
+    const folderPath =
+      getFolderPath(folderNumber);
 
     if (fs.existsSync(folderPath)) {
       const stats = fs.lstatSync(folderPath);
 
-      if (!stats.isDirectory() || stats.isSymbolicLink()) {
+      if (
+        !stats.isDirectory() ||
+        stats.isSymbolicLink()
+      ) {
         return res.status(409).json({
           success: false,
           error:
@@ -431,11 +538,20 @@ router.delete('/:id', (req, res) => {
       }
     }
 
-    const nextRepresentatives = representatives.filter(
-      (item) => !sameId(item.id, representative.id),
+    const nextRepresentatives =
+      representatives.filter(
+        (item) =>
+          !sameId(
+            item.id,
+            representative.id,
+          ),
+      );
+
+    const saved = writeRepresentatives(
+      nextRepresentatives,
     );
 
-    if (!writeRepresentatives(nextRepresentatives)) {
+    if (!saved) {
       return res.status(500).json({
         success: false,
         error: 'حذف نماینده ذخیره نشد.',
@@ -451,10 +567,15 @@ router.delete('/:id', (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'نماینده و پوشهٔ پرونده‌های او حذف شدند.',
+      message:
+        'نماینده و پوشهٔ پرونده‌های او حذف شدند.',
     });
   } catch (error) {
-    console.error('خطا در حذف نماینده:', error);
+    console.error(
+      'خطا در حذف نماینده:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
       error:
@@ -465,9 +586,10 @@ router.delete('/:id', (req, res) => {
 
 router.get('/:id/notes', (req, res) => {
   try {
-    const representative = readRepresentatives().find(
-      (item) => sameId(item.id, req.params.id),
-    );
+    const representative =
+      readRepresentatives().find((item) =>
+        sameId(item.id, req.params.id),
+      );
 
     if (!representative) {
       return res.status(404).json({
@@ -478,12 +600,19 @@ router.get('/:id/notes', (req, res) => {
 
     const notes = readRepresentativeNotes()
       .filter((note) =>
-        sameId(note.representativeId, representative.id),
+        sameId(
+          note.representativeId,
+          representative.id,
+        ),
       )
       .sort(
         (first, second) =>
-          new Date(second.createdAt || 0).getTime() -
-          new Date(first.createdAt || 0).getTime(),
+          new Date(
+            second.createdAt || 0,
+          ).getTime() -
+          new Date(
+            first.createdAt || 0,
+          ).getTime(),
       );
 
     return res.status(200).json({
@@ -491,7 +620,11 @@ router.get('/:id/notes', (req, res) => {
       data: notes,
     });
   } catch (error) {
-    console.error('خطا در دریافت یادداشت‌ها:', error);
+    console.error(
+      'خطا در دریافت یادداشت‌ها:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
       error: 'دریافت یادداشت‌ها ناموفق بود.',
@@ -501,9 +634,10 @@ router.get('/:id/notes', (req, res) => {
 
 router.post('/:id/notes', (req, res) => {
   try {
-    const representative = readRepresentatives().find(
-      (item) => sameId(item.id, req.params.id),
-    );
+    const representative =
+      readRepresentatives().find((item) =>
+        sameId(item.id, req.params.id),
+      );
 
     if (!representative) {
       return res.status(404).json({
@@ -512,26 +646,32 @@ router.post('/:id/notes', (req, res) => {
       });
     }
 
-    const text = String(req.body?.text ?? '').trim();
+    const text = String(
+      req.body?.text ?? '',
+    ).trim();
 
     if (!text || text.length > 3000) {
       return res.status(400).json({
         success: false,
-        error: 'متن یادداشت باید بین ۱ تا ۳۰۰۰ نویسه باشد.',
+        error:
+          'متن یادداشت باید بین ۱ تا ۳۰۰۰ نویسه باشد.',
       });
     }
 
     const note = {
       id: createRandomId(),
-      representativeId: String(representative.id),
+      representativeId: String(
+        representative.id,
+      ),
       text,
       createdAt: new Date().toISOString(),
     };
 
-    const saved = writeRepresentativeNotes([
-      note,
-      ...readRepresentativeNotes(),
-    ]);
+    const saved =
+      writeRepresentativeNotes([
+        note,
+        ...readRepresentativeNotes(),
+      ]);
 
     if (!saved) {
       return res.status(500).json({
@@ -545,7 +685,11 @@ router.post('/:id/notes', (req, res) => {
       data: note,
     });
   } catch (error) {
-    console.error('خطا در ثبت یادداشت:', error);
+    console.error(
+      'خطا در ثبت یادداشت:',
+      error,
+    );
+
     return res.status(500).json({
       success: false,
       error: 'ثبت یادداشت ناموفق بود.',

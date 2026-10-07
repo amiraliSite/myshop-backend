@@ -1,6 +1,10 @@
 const express = require('express');
 
 const {
+  requireAdmin,
+} = require('../middleware/auth.middleware');
+
+const {
   readRepresentatives,
   writeRepresentatives,
   readProducts,
@@ -17,55 +21,30 @@ const {
 const router = express.Router();
 
 function cleanText(value, fallback = '') {
-  const text = String(value ?? '').trim();
-
-  return text || fallback;
+  return String(value ?? '').trim() || fallback;
 }
 
 function toNumber(value, fallback = 0) {
-  const normalizedValue = toEnglishDigits(value)
+  const text = String(toEnglishDigits(value) ?? '')
     .replace(/[,٬،\s]/g, '')
     .replace(/[^\d.-]/g, '')
     .trim();
 
-  if (!normalizedValue) {
-    return fallback;
-  }
+  if (!text) return fallback;
 
-  const numberValue = Number(normalizedValue);
-
-  return Number.isFinite(numberValue)
-    ? numberValue
-    : fallback;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : fallback;
 }
 
-function toPositiveNumber(value, fallback = 0) {
-  const numberValue = toNumber(value, fallback);
-
-  return numberValue > 0
-    ? numberValue
-    : fallback;
-}
-
-function sameValue(firstValue, secondValue) {
-  const first = normalizeValue(firstValue);
-  const second = normalizeValue(secondValue);
-
-  return Boolean(first && second && first === second);
+function sameValue(first, second) {
+  const a = normalizeValue(first);
+  const b = normalizeValue(second);
+  return Boolean(a && b && a === b);
 }
 
 function getWarehouseStatus(quantity, minimumStock) {
-  const safeQuantity = toNumber(quantity);
-  const safeMinimumStock = toNumber(minimumStock);
-
-  if (safeQuantity <= 0) {
-    return 'out';
-  }
-
-  if (safeQuantity <= safeMinimumStock) {
-    return 'low';
-  }
-
+  if (toNumber(quantity) <= 0) return 'out';
+  if (toNumber(quantity) <= toNumber(minimumStock)) return 'low';
   return 'normal';
 }
 
@@ -74,34 +53,83 @@ function createEmptyWarehouse(representativeId) {
     representativeId: String(representativeId).trim(),
     items: [],
     movements: [],
+    importedFiles: [],
     updatedAt: new Date().toISOString(),
   };
 }
 
-function findRepresentative(
-  representatives,
-  representativeId,
-) {
-  return representatives.find((representative) => {
-    return sameValue(
-      representative.id,
-      representativeId,
-    );
-  });
+function ensureWarehouseShape(warehouse) {
+  const result = warehouse || {};
+  result.items = Array.isArray(result.items) ? result.items : [];
+  result.movements = Array.isArray(result.movements)
+    ? result.movements
+    : [];
+  result.importedFiles = Array.isArray(result.importedFiles)
+    ? result.importedFiles
+    : [];
+  return result;
 }
 
-/*
-  محاسبه سقف مالی بار نماینده
+function findRepresentative(representatives, id) {
+  return representatives.find((item) => sameValue(item.id, id));
+}
 
-  سقف بار:
-  مبلغ ودیعه + مبلغ چک ضمانت
+function getOrCreateWarehouse(warehouses, representativeId) {
+  let warehouseIndex = warehouses.findIndex((item) =>
+    sameValue(item.representativeId, representativeId),
+  );
 
-  totalFinancialCommitment صرفاً برای گزارش و کنترل
-  برگردانده می‌شود و دوباره به مبلغ اضافه نمی‌شود.
-*/
-function getRepresentativeWarehouseBudget(
-  representative,
-) {
+  if (warehouseIndex < 0) {
+    warehouses.push(createEmptyWarehouse(representativeId));
+    warehouseIndex = warehouses.length - 1;
+  }
+
+  const warehouse = ensureWarehouseShape(
+    warehouses[warehouseIndex],
+  );
+
+  warehouses[warehouseIndex] = warehouse;
+  return { warehouseIndex, warehouse };
+}
+
+function calculateWarehouseSummary(warehouse) {
+  const items = Array.isArray(warehouse?.items)
+    ? warehouse.items
+    : [];
+
+  return {
+    storeItemsCount: items.reduce(
+      (sum, item) => sum + Math.max(0, toNumber(item.quantity)),
+      0,
+    ),
+    storeItemsTotalValue: items.reduce(
+      (sum, item) =>
+        sum +
+        Math.max(0, toNumber(item.quantity)) *
+          Math.max(0, toNumber(item.unitPrice)),
+      0,
+    ),
+  };
+}
+
+function updateRepresentativeWarehouseSummary(id, warehouse) {
+  const representatives = readRepresentatives();
+  const index = representatives.findIndex((item) =>
+    sameValue(item.id, id),
+  );
+
+  if (index < 0) return false;
+
+  representatives[index] = {
+    ...representatives[index],
+    ...calculateWarehouseSummary(warehouse),
+    updatedAt: new Date().toISOString(),
+  };
+
+  return writeRepresentatives(representatives);
+}
+
+function getRepresentativeWarehouseBudget(representative) {
   const depositAmount = Math.max(
     0,
     toNumber(representative?.depositAmount),
@@ -114,207 +142,93 @@ function getRepresentativeWarehouseBudget(
 
   const totalFinancialCommitment = Math.max(
     0,
-    toNumber(
-      representative?.totalFinancialCommitment,
-    ),
+    toNumber(representative?.totalFinancialCommitment),
   );
 
-  const warehouseBudget =
-    depositAmount + guaranteeCheck;
+  const calculatedBudget = depositAmount + guaranteeCheck;
 
   return {
     depositAmount,
     guaranteeCheck,
     totalFinancialCommitment,
-    warehouseBudget,
+    calculatedBudget,
+    warehouseBudget:
+      totalFinancialCommitment > 0
+        ? totalFinancialCommitment
+        : calculatedBudget,
   };
 }
 
-function calculateWarehouseSummary(warehouse) {
-  const items = Array.isArray(warehouse?.items)
-    ? warehouse.items
-    : [];
-
-  const storeItemsCount = items.reduce(
-    (total, item) => {
-      return (
-        total +
-        Math.max(0, toNumber(item.quantity))
-      );
-    },
-    0,
-  );
-
-  const storeItemsTotalValue = items.reduce(
-    (total, item) => {
-      const savedTotalPrice = toNumber(
-        item.totalPrice,
-      );
-
-      const calculatedTotalPrice =
-        savedTotalPrice > 0
-          ? savedTotalPrice
-          : toNumber(item.quantity) *
-            toNumber(item.unitPrice);
-
-      return (
-        total +
-        Math.max(0, calculatedTotalPrice)
-      );
-    },
-    0,
-  );
-
-  return {
-    storeItemsCount,
-    storeItemsTotalValue,
-  };
-}
-
-function updateRepresentativeWarehouseSummary(
-  representativeId,
-  warehouse,
-) {
-  const representatives = readRepresentatives();
-
-  const representativeIndex =
-    representatives.findIndex((representative) => {
-      return sameValue(
-        representative.id,
-        representativeId,
-      );
-    });
-
-  if (representativeIndex < 0) {
-    console.warn(
-      'نماینده برای بروزرسانی خلاصه انبار پیدا نشد:',
-      representativeId,
+function findWarehouseItem(warehouse, row) {
+  if (row.productId) {
+    const index = warehouse.items.findIndex((item) =>
+      sameValue(item.productId, row.productId),
     );
-
-    return false;
+    if (index >= 0) return index;
   }
 
-  const summary = calculateWarehouseSummary(
-    warehouse,
+  return warehouse.items.findIndex(
+    (item) =>
+      sameValue(item.productName, row.name) &&
+      cleanText(item.brand) === cleanText(row.brand),
   );
-
-  representatives[representativeIndex] = {
-    ...representatives[representativeIndex],
-    storeItemsCount: summary.storeItemsCount,
-    storeItemsTotalValue:
-      summary.storeItemsTotalValue,
-    updatedAt: new Date().toISOString(),
-  };
-
-  const saved = writeRepresentatives(
-    representatives,
-  );
-
-  if (!saved) {
-    console.error(
-      'ذخیره خلاصه انبار نماینده ناموفق بود:',
-      representativeId,
-    );
-  }
-
-  return saved;
 }
 
-function synchronizeAllWarehouseSummaries() {
-  const representatives = readRepresentatives();
-  const warehouses = readRepresentativeWarehouses();
-  const now = new Date().toISOString();
+function sendServerError(res, error, fallback) {
+  console.error(fallback, error);
+  return res.status(500).json({
+    success: false,
+    error: error.message || fallback,
+  });
+}
 
-  const updatedRepresentatives = representatives.map(
-    (representative) => {
-      const warehouse = warehouses.find(
-        (warehouseItem) => {
-          return sameValue(
-            warehouseItem.representativeId,
-            representative.id,
+router.post(
+  '/warehouse/sync-summaries',
+  requireAdmin,
+  (_req, res) => {
+    try {
+      const warehouses = readRepresentativeWarehouses();
+      const now = new Date().toISOString();
+
+      const representatives = readRepresentatives().map(
+        (representative) => {
+          const warehouse = warehouses.find((item) =>
+            sameValue(item.representativeId, representative.id),
           );
+
+          return {
+            ...representative,
+            ...calculateWarehouseSummary(warehouse),
+            updatedAt: now,
+          };
         },
       );
 
-      const summary = calculateWarehouseSummary(
-        warehouse,
-      );
-
-      return {
-        ...representative,
-        storeItemsCount: summary.storeItemsCount,
-        storeItemsTotalValue:
-          summary.storeItemsTotalValue,
-        updatedAt: now,
-      };
-    },
-  );
-
-  const saved = writeRepresentatives(
-    updatedRepresentatives,
-  );
-
-  return {
-    saved,
-    representatives: updatedRepresentatives,
-  };
-}
-
-/*
-  POST /api/representatives/warehouse/sync-summaries
-*/
-router.post(
-  '/warehouse/sync-summaries',
-  (_req, res) => {
-    try {
-      const result =
-        synchronizeAllWarehouseSummaries();
-
-      if (!result.saved) {
-        return res.status(500).json({
-          success: false,
-          error:
-            'ذخیره خلاصه موجودی نمایندگان ناموفق بود.',
-        });
+      if (!writeRepresentatives(representatives)) {
+        throw new Error('ذخیره خلاصه موجودی ناموفق بود.');
       }
 
-      return res.status(200).json({
+      return res.json({
         success: true,
-        message:
-          'خلاصه موجودی همه نمایندگان با موفقیت بروزرسانی شد.',
-        count: result.representatives.length,
-        data: result.representatives,
+        message: 'خلاصه موجودی نمایندگان بروزرسانی شد.',
+        count: representatives.length,
+        data: representatives,
       });
     } catch (error) {
-      console.error(
-        'خطا در همگام‌سازی خلاصه موجودی نمایندگان:',
+      return sendServerError(
+        res,
         error,
+        'خطا در همگام‌سازی موجودی.',
       );
-
-      return res.status(500).json({
-        success: false,
-        error:
-          error.message ||
-          'خطا در همگام‌سازی خلاصه موجودی نمایندگان.',
-      });
     }
   },
 );
 
-/*
-  GET /api/representatives/:id/warehouse
-*/
 router.get('/:id/warehouse', (req, res) => {
   try {
-    const representativeId = normalizeValue(
-      req.params.id,
-    );
-
-    const representatives = readRepresentatives();
-
     const representative = findRepresentative(
-      representatives,
-      representativeId,
+      readRepresentatives(),
+      req.params.id,
     );
 
     if (!representative) {
@@ -324,594 +238,49 @@ router.get('/:id/warehouse', (req, res) => {
       });
     }
 
-    const warehouses =
-      readRepresentativeWarehouses();
-
-    let warehouseIndex = warehouses.findIndex(
-      (warehouse) => {
-        return sameValue(
-          warehouse.representativeId,
-          representativeId,
-        );
-      },
+    const warehouses = readRepresentativeWarehouses();
+    const { warehouse } = getOrCreateWarehouse(
+      warehouses,
+      representative.id,
     );
 
-    if (warehouseIndex < 0) {
-      const newWarehouse = createEmptyWarehouse(
-        representative.id,
-      );
-
-      warehouses.push(newWarehouse);
-
-      if (
-        !writeRepresentativeWarehouses(warehouses)
-      ) {
-        return res.status(500).json({
-          success: false,
-          error: 'ساخت انبار نماینده ناموفق بود.',
-        });
-      }
-
-      warehouseIndex = warehouses.length - 1;
+    if (!writeRepresentativeWarehouses(warehouses)) {
+      throw new Error('ذخیره ساختار انبار ناموفق بود.');
     }
 
-    const warehouse = warehouses[warehouseIndex];
-
-    warehouse.items = Array.isArray(warehouse.items)
-      ? warehouse.items
-      : [];
-
-    warehouse.movements = Array.isArray(
-      warehouse.movements,
-    )
-      ? warehouse.movements
-      : [];
-
-    updateRepresentativeWarehouseSummary(
+    const summarySaved = updateRepresentativeWarehouseSummary(
       representative.id,
       warehouse,
     );
 
-    const movements = [...warehouse.movements].sort(
-      (first, second) => {
-        return (
-          new Date(
-            second.createdAt || 0,
-          ).getTime() -
-          new Date(
-            first.createdAt || 0,
-          ).getTime()
-        );
-      },
-    );
-
-    return res.status(200).json({
+    return res.json({
       success: true,
       data: {
-        representativeId: String(
-          representative.id,
-        ).trim(),
+        representativeId: String(representative.id),
         items: warehouse.items,
-        movements,
-        updatedAt:
-          warehouse.updatedAt ||
-          new Date().toISOString(),
-      },
-    });
-  } catch (error) {
-    console.error(
-      'خطا در دریافت انبار نماینده:',
-      error,
-    );
-
-    return res.status(500).json({
-      success: false,
-      error:
-        error.message ||
-        'خطا در بارگذاری انبار نماینده.',
-    });
-  }
-});
-
-/*
-  POST /api/representatives/:id/warehouse/import
-
-  سقف بار:
-  depositAmount + guaranteeCheck
-
-  ارزش هر ردیف:
-  quantity * unitPrice
-
-  اگر مبلغ برای کل تعداد کافی نباشد،
-  فقط تعداد قابل خرید ثبت می‌شود.
-*/
-router.post('/:id/warehouse/import', (req, res) => {
-  try {
-    const representativeId = normalizeValue(
-      req.params.id,
-    );
-
-    const representatives = readRepresentatives();
-
-    const representative = findRepresentative(
-      representatives,
-      representativeId,
-    );
-
-    if (!representative) {
-      return res.status(404).json({
-        success: false,
-        error: 'نماینده موردنظر پیدا نشد.',
-      });
-    }
-
-    const inputItems = req.body?.items;
-
-    if (
-      !Array.isArray(inputItems) ||
-      inputItems.length === 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: 'هیچ ردیفی برای ثبت ارسال نشده است.',
-      });
-    }
-
-    if (inputItems.length > 5000) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'تعداد ردیف‌ها نباید بیشتر از ۵۰۰۰ باشد.',
-      });
-    }
-
-    const budget =
-      getRepresentativeWarehouseBudget(
-        representative,
-      );
-
-    const {
-      depositAmount,
-      guaranteeCheck,
-      totalFinancialCommitment,
-      warehouseBudget,
-    } = budget;
-
-    if (warehouseBudget <= 0) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'مبلغ ودیعه و چک ضمانت نماینده صفر یا نامعتبر است.',
-        data: {
-          depositAmount,
-          guaranteeCheck,
-          totalFinancialCommitment,
-          warehouseBudget: 0,
-          importedAmount: 0,
-          remainingAmount: 0,
-          acceptedRowsCount: 0,
-          acceptedQuantity: 0,
-          rejectedRowsCount: inputItems.length,
-          rejectedQuantity: inputItems.reduce(
-            (total, row) => {
-              return total + toNumber(row?.quantity);
-            },
-            0,
-          ),
-          rejectedItems: inputItems.map((row) => ({
-            rowIndex: row?.rowIndex ?? null,
-            name: cleanText(row?.name),
-            quantity: toNumber(row?.quantity),
-            acceptedQuantity: 0,
-            rejectedQuantity: toNumber(
-              row?.quantity,
-            ),
-            unitPrice: toNumber(row?.unitPrice),
-            rowTotal:
-              toNumber(row?.quantity) *
-              toNumber(row?.unitPrice),
-            acceptedTotal: 0,
-            reason:
-              'سقف مالی نماینده صفر یا نامعتبر است.',
-          })),
-        },
-      });
-    }
-
-    const preparedItems = [];
-
-    for (const row of inputItems) {
-      const name = cleanText(row?.name);
-      const brand = cleanText(row?.brand);
-      const category = cleanText(row?.category);
-      const quantity = toNumber(row?.quantity);
-      const unitPrice = toNumber(row?.unitPrice);
-
-      if (!name) {
-        return res.status(400).json({
-          success: false,
-          error:
-            `ردیف ${row?.rowIndex ?? '?'} نام کالا ندارد.`,
-        });
-      }
-
-      if (
-        !Number.isSafeInteger(quantity) ||
-        quantity <= 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          error:
-            `ردیف ${row?.rowIndex ?? '?'} تعداد نامعتبر دارد.`,
-        });
-      }
-
-      if (
-        !Number.isFinite(unitPrice) ||
-        unitPrice <= 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          error:
-            `ردیف ${row?.rowIndex ?? '?'} قیمت واحد نامعتبر دارد.`,
-        });
-      }
-
-      const rowTotal = quantity * unitPrice;
-
-      if (!Number.isFinite(rowTotal)) {
-        return res.status(400).json({
-          success: false,
-          error:
-            `ارزش ردیف ${row?.rowIndex ?? '?'} نامعتبر است.`,
-        });
-      }
-
-      preparedItems.push({
-        name,
-        brand,
-        category,
-        quantity,
-        unitPrice,
-        rowIndex: row?.rowIndex ?? null,
-        rowTotal,
-      });
-    }
-
-    const acceptedItems = [];
-    const rejectedItems = [];
-
-    let remainingAmount = warehouseBudget;
-    let importedAmount = 0;
-
-    for (const row of preparedItems) {
-      if (remainingAmount <= 0) {
-        rejectedItems.push({
-          rowIndex: row.rowIndex,
-          name: row.name,
-          brand: row.brand,
-          category: row.category,
-          quantity: row.quantity,
-          acceptedQuantity: 0,
-          rejectedQuantity: row.quantity,
-          unitPrice: row.unitPrice,
-          rowTotal: row.rowTotal,
-          acceptedTotal: 0,
-          reason:
-            'سقف مالی باقی‌مانده تمام شده است.',
-        });
-
-        continue;
-      }
-
-      const affordableQuantity = Math.floor(
-        remainingAmount / row.unitPrice,
-      );
-
-      const acceptedQuantity = Math.min(
-        row.quantity,
-        affordableQuantity,
-      );
-
-      const rejectedQuantity =
-        row.quantity - acceptedQuantity;
-
-      if (acceptedQuantity <= 0) {
-        rejectedItems.push({
-          rowIndex: row.rowIndex,
-          name: row.name,
-          brand: row.brand,
-          category: row.category,
-          quantity: row.quantity,
-          acceptedQuantity: 0,
-          rejectedQuantity: row.quantity,
-          unitPrice: row.unitPrice,
-          rowTotal: row.rowTotal,
-          acceptedTotal: 0,
-          reason:
-            'سقف مالی برای خرید حتی یک عدد کافی نیست.',
-        });
-
-        continue;
-      }
-
-      const acceptedTotal =
-        acceptedQuantity * row.unitPrice;
-
-      acceptedItems.push({
-        ...row,
-        originalQuantity: row.quantity,
-        quantity: acceptedQuantity,
-        rejectedQuantity,
-        rowTotal: acceptedTotal,
-      });
-
-      importedAmount += acceptedTotal;
-      remainingAmount -= acceptedTotal;
-
-      if (rejectedQuantity > 0) {
-        rejectedItems.push({
-          rowIndex: row.rowIndex,
-          name: row.name,
-          brand: row.brand,
-          category: row.category,
-          quantity: row.quantity,
-          acceptedQuantity,
-          rejectedQuantity,
-          unitPrice: row.unitPrice,
-          rowTotal: row.rowTotal,
-          acceptedTotal,
-          reason:
-            'تعداد ثبت‌شده به‌اندازه سقف مالی کاهش یافت.',
-        });
-      }
-    }
-
-    if (acceptedItems.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'سقف مالی نماینده برای خرید حتی یک عدد از کالاهای فایل کافی نیست.',
-        data: {
-          depositAmount,
-          guaranteeCheck,
-          totalFinancialCommitment,
-          warehouseBudget,
-          importedAmount: 0,
-          remainingAmount: warehouseBudget,
-          acceptedRowsCount: 0,
-          acceptedQuantity: 0,
-          rejectedRowsCount: rejectedItems.length,
-          rejectedQuantity: rejectedItems.reduce(
-            (total, item) => {
-              return total + item.rejectedQuantity;
-            },
-            0,
-          ),
-          rejectedItems,
-        },
-      });
-    }
-
-    const warehouses =
-      readRepresentativeWarehouses();
-
-    let warehouseIndex = warehouses.findIndex(
-      (warehouse) => {
-        return sameValue(
-          warehouse.representativeId,
-          representative.id,
-        );
-      },
-    );
-
-    if (warehouseIndex < 0) {
-      warehouses.push(
-        createEmptyWarehouse(representative.id),
-      );
-
-      warehouseIndex = warehouses.length - 1;
-    }
-
-    const warehouse = warehouses[warehouseIndex];
-
-    warehouse.items = Array.isArray(warehouse.items)
-      ? warehouse.items
-      : [];
-
-    warehouse.movements = Array.isArray(
-      warehouse.movements,
-    )
-      ? warehouse.movements
-      : [];
-
-    const now = new Date().toISOString();
-    const fileName = cleanText(req.body?.fileName);
-
-    let createdCount = 0;
-    let updatedCount = 0;
-
-    for (const row of acceptedItems) {
-      const itemIndex = warehouse.items.findIndex(
-        (item) => {
-          return (
-            sameValue(item.productName, row.name) &&
-            sameValue(item.brand, row.brand)
-          );
-        },
-      );
-
-      let item;
-
-      if (itemIndex < 0) {
-        item = {
-          id: createRandomId(),
-          productId: createRandomId(),
-          productName: row.name,
-          brand: row.brand,
-          category: row.category,
-          quantity: row.quantity,
-          unitPrice: row.unitPrice,
-          totalPrice:
-            row.quantity * row.unitPrice,
-          minimumStock: 0,
-          status: getWarehouseStatus(
-            row.quantity,
-            0,
-          ),
-          lastUpdated: now,
-        };
-
-        warehouse.items.push(item);
-        createdCount += 1;
-      } else {
-        const previous =
-          warehouse.items[itemIndex];
-
-        const nextQuantity =
-          toNumber(previous.quantity) +
-          row.quantity;
-
-        item = {
-          ...previous,
-          productName: row.name,
-          brand: row.brand,
-          category:
-            row.category ||
-            cleanText(previous.category),
-          quantity: nextQuantity,
-          unitPrice: row.unitPrice,
-          totalPrice:
-            nextQuantity * row.unitPrice,
-          status: getWarehouseStatus(
-            nextQuantity,
-            previous.minimumStock,
-          ),
-          lastUpdated: now,
-        };
-
-        warehouse.items[itemIndex] = item;
-        updatedCount += 1;
-      }
-
-      warehouse.movements.unshift({
-        id: createRandomId(),
-        representativeId: String(
-          representative.id,
-        ).trim(),
-        productId: item.productId,
-        productName: item.productName,
-        brand: item.brand,
-        category: item.category,
-        type: 'in',
-        quantity: row.quantity,
-        unitPrice: row.unitPrice,
-        rowTotal: row.rowTotal,
-        originalQuantity: row.originalQuantity,
-        rejectedQuantity: row.rejectedQuantity,
-        reason:
-          'ارسال بار از Excel بر اساس ودیعه و چک ضمانت',
-        description:
-          `ردیف ${row.rowIndex ?? '-'} از فایل ${
-            fileName || 'Excel'
-          }`,
-        createdAt: now,
-      });
-    }
-
-    warehouse.updatedAt = now;
-    warehouses[warehouseIndex] = warehouse;
-
-    const warehouseSaved =
-      writeRepresentativeWarehouses(warehouses);
-
-    if (!warehouseSaved) {
-      return res.status(500).json({
-        success: false,
-        error:
-          'ذخیره اطلاعات انبار نماینده ناموفق بود.',
-      });
-    }
-
-    const summarySaved =
-      updateRepresentativeWarehouseSummary(
-        representative.id,
-        warehouse,
-      );
-
-    if (!summarySaved) {
-      return res.status(500).json({
-        success: false,
-        error:
-          'کالاها ثبت شدند، اما ذخیره خلاصه نماینده ناموفق بود.',
-      });
-    }
-
-    const acceptedQuantity =
-      acceptedItems.reduce((total, item) => {
-        return total + item.quantity;
-      }, 0);
-
-    const rejectedQuantity =
-      rejectedItems.reduce((total, item) => {
-        return total + item.rejectedQuantity;
-      }, 0);
-
-    return res.status(201).json({
-      success: true,
-      message:
-        'کالاها بر اساس مبلغ ودیعه و چک ضمانت نماینده ثبت شدند.',
-      data: {
-        depositAmount,
-        guaranteeCheck,
-        totalFinancialCommitment,
-        warehouseBudget,
-        importedAmount,
-        remainingAmount,
-        acceptedRowsCount: acceptedItems.length,
-        acceptedQuantity,
-        rejectedRowsCount: rejectedItems.length,
-        rejectedQuantity,
-        createdCount,
-        updatedCount,
-        importedCount: acceptedItems.length,
-        rejectedItems,
-        summary: calculateWarehouseSummary(
-          warehouse,
+        movements: [...warehouse.movements].sort(
+          (a, b) =>
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime(),
         ),
+        updatedAt: warehouse.updatedAt,
+        summary: calculateWarehouseSummary(warehouse),
+        summarySaved,
       },
     });
   } catch (error) {
-    console.error(
-      'خطا در ورود Excel به انبار نماینده:',
-      error,
-    );
-
-    return res.status(500).json({
-      success: false,
-      error:
-        error.message ||
-        'خطا در ثبت Excel انبار نماینده.',
-    });
+    return sendServerError(res, error, 'خطا در دریافت انبار.');
   }
 });
 
-/*
-  POST /api/representatives/:id/warehouse/movements
-*/
 router.post(
-  '/:id/warehouse/movements',
+  '/:id/warehouse/import',
+  requireAdmin,
   (req, res) => {
     try {
-      const representativeId = normalizeValue(
-        req.params.id,
-      );
-
-      const representatives = readRepresentatives();
-
       const representative = findRepresentative(
-        representatives,
-        representativeId,
+        readRepresentatives(),
+        req.params.id,
       );
 
       if (!representative) {
@@ -921,59 +290,538 @@ router.post(
         });
       }
 
-      const type =
-        req.body.type === 'out'
-          ? 'out'
-          : 'in';
+      const inputItems = req.body?.items;
+      const requestId = cleanText(req.body?.requestId);
+      const fileName = cleanText(req.body?.fileName, 'Excel');
 
-      const productId = normalizeValue(
-        req.body.productId,
+      if (!requestId) {
+        return res.status(400).json({
+          success: false,
+          code: 'REQUEST_ID_REQUIRED',
+          error: 'شناسه فایل ارسال نشده است.',
+        });
+      }
+
+      if (
+        !Array.isArray(inputItems) ||
+        !inputItems.length ||
+        inputItems.length > 5000
+      ) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_ROWS_COUNT',
+          error: 'تعداد ردیف‌های فایل باید بین ۱ و ۵۰۰۰ باشد.',
+        });
+      }
+
+      const rows = [];
+      const validationErrors = [];
+      const rowIndexes = new Set();
+
+      inputItems.forEach((input, index) => {
+        const row = input || {};
+        const rowIndex = row.rowIndex ?? index + 1;
+        const name = cleanText(
+          row.name || row.productName || row.title,
+        );
+        const quantity = toNumber(row.quantity);
+        const unitPrice = toNumber(row.unitPrice);
+
+        let reason = '';
+
+        if (!name) {
+          reason = 'نام کالا خالی است.';
+        } else if (
+          !Number.isSafeInteger(quantity) ||
+          quantity <= 0
+        ) {
+          reason = 'تعداد باید عدد صحیح و بیشتر از صفر باشد.';
+        } else if (
+          unitPrice <= 0 ||
+          !Number.isFinite(quantity * unitPrice)
+        ) {
+          reason = 'قیمت یا ارزش ردیف نامعتبر است.';
+        } else if (rowIndexes.has(String(rowIndex))) {
+          reason = 'شماره ردیف تکراری است.';
+        }
+
+        rowIndexes.add(String(rowIndex));
+
+        if (reason) {
+          validationErrors.push({
+            rowIndex,
+            name,
+            reason,
+          });
+        }
+
+        rows.push({
+          rowIndex,
+          productId: cleanText(row.productId),
+          name,
+          brand: cleanText(row.brand),
+          category: cleanText(row.category),
+          quantity,
+          unitPrice,
+        });
+      });
+
+      if (validationErrors.length) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_ROWS',
+          error: 'فایل دارای ردیف نامعتبر است؛ هیچ کالایی ثبت نشد.',
+          data: { validationErrors },
+        });
+      }
+
+      const warehouses = readRepresentativeWarehouses();
+      const { warehouse } = getOrCreateWarehouse(
+        warehouses,
+        representative.id,
       );
 
-      const quantity = toPositiveNumber(
-        req.body.quantity,
+      const previousFile = warehouse.importedFiles.find(
+        (item) => item.requestId === requestId,
       );
 
-      const requestedUnitPrice = toNumber(
-        req.body.unitPrice,
+      let progressRows;
+
+      if (previousFile && Array.isArray(previousFile.rows)) {
+        progressRows = previousFile.rows;
+
+        const inputChanged =
+          progressRows.length !== rows.length ||
+          rows.some((row, index) => {
+            const previous = progressRows[index];
+
+            return (
+              String(previous.rowIndex) !== String(row.rowIndex) ||
+              previous.name !== row.name ||
+              previous.brand !== row.brand ||
+              previous.category !== row.category ||
+              previous.productId !== row.productId ||
+              previous.quantity !== row.quantity ||
+              previous.unitPrice !== row.unitPrice
+            );
+          });
+
+        if (inputChanged) {
+          return res.status(409).json({
+            success: false,
+            code: 'FILE_CONTENT_CHANGED',
+            error:
+              'محتوای فایل با سابقه ثبت آن یکسان نیست؛ ثبت دوباره متوقف شد.',
+          });
+        }
+      } else if (previousFile) {
+        const legacyMovements = warehouse.movements.filter(
+          (movement) =>
+            movement.type === 'in' &&
+            movement.createdAt === previousFile.createdAt &&
+            cleanText(movement.description).endsWith(
+              ` از فایل ${fileName}`,
+            ),
+        );
+
+        const recoveredQuantity = legacyMovements.reduce(
+          (sum, movement) => sum + toNumber(movement.quantity),
+          0,
+        );
+
+        if (
+          !legacyMovements.length ||
+          recoveredQuantity !== toNumber(previousFile.acceptedQuantity)
+        ) {
+          return res.status(409).json({
+            success: false,
+            code: 'LEGACY_IMPORT_REVIEW_REQUIRED',
+            error:
+              'این فایل سابقه ثبت قدیمی دارد، اما تعداد ثبت‌شده هر ردیف قابل بازیابی نیست. برای جلوگیری از موجودی تکراری، ثبت مجدد متوقف شد.',
+          });
+        }
+
+        progressRows = rows.map((row) => {
+          const expectedDescription =
+            `ردیف ${row.rowIndex} از فایل ${fileName}`;
+
+          const acceptedQuantity = legacyMovements
+            .filter(
+              (movement) =>
+                movement.description === expectedDescription &&
+                sameValue(movement.productName, row.name) &&
+                toNumber(movement.unitPrice) === row.unitPrice,
+            )
+            .reduce(
+              (sum, movement) =>
+                sum + toNumber(movement.quantity),
+              0,
+            );
+
+          return { ...row, acceptedQuantity };
+        });
+
+        if (
+          progressRows.reduce(
+            (sum, row) => sum + row.acceptedQuantity,
+            0,
+          ) !== recoveredQuantity ||
+          progressRows.some(
+            (row) => row.acceptedQuantity > row.quantity,
+          )
+        ) {
+          return res.status(409).json({
+            success: false,
+            code: 'LEGACY_IMPORT_REVIEW_REQUIRED',
+            error:
+              'سابقه قدیمی با ردیف‌های فایل تطابق ندارد؛ ثبت مجدد برای جلوگیری از تکرار متوقف شد.',
+          });
+        }
+      } else {
+        progressRows = rows.map((row) => ({
+          ...row,
+          acceptedQuantity: 0,
+        }));
+      }
+
+      if (
+        progressRows.every(
+          (row) => row.acceptedQuantity >= row.quantity,
+        )
+      ) {
+        return res.status(409).json({
+          success: false,
+          code: 'FILE_ALREADY_COMPLETED',
+          error:
+            'تمام تعداد کالاهای این فایل قبلاً ثبت شده‌اند؛ کالای باقی‌مانده‌ای برای ثبت وجود ندارد.',
+        });
+      }
+
+      const budget = getRepresentativeWarehouseBudget(
+        representative,
       );
 
+      const currentWarehouseValue =
+        calculateWarehouseSummary(warehouse).storeItemsTotalValue;
+
+      let remainingAmount = Math.max(
+        0,
+        budget.warehouseBudget - currentWarehouseValue,
+      );
+
+      const remainingWarehouseBudget = remainingAmount;
+      const now = new Date().toISOString();
+
+      let importedAmount = 0;
+      let acceptedQuantity = 0;
+      let acceptedRowsCount = 0;
+      let createdCount = 0;
+      let updatedCount = 0;
+
+      const rowResults = [];
+
+      for (const row of progressRows) {
+        const previouslyAccepted = row.acceptedQuantity;
+        const pendingQuantity =
+          row.quantity - previouslyAccepted;
+
+        if (pendingQuantity <= 0) {
+          rowResults.push({
+            ...row,
+            previouslyAcceptedQuantity: previouslyAccepted,
+            acceptedNowQuantity: 0,
+            remainingQuantity: 0,
+            status: 'already_completed',
+            reason: 'این ردیف قبلاً به‌طور کامل ثبت شده است.',
+          });
+          continue;
+        }
+
+        const availableBeforeRow = remainingAmount;
+        const itemIndex = findWarehouseItem(warehouse, row);
+        const previousItem =
+          itemIndex >= 0 ? warehouse.items[itemIndex] : null;
+
+        const oldQuantity = previousItem
+          ? Math.max(0, toNumber(previousItem.quantity))
+          : 0;
+
+        const oldUnitPrice = previousItem
+          ? Math.max(0, toNumber(previousItem.unitPrice))
+          : 0;
+
+        // ارزش موجودی قبلی نیز با قیمت جدید محاسبه می‌شود.
+        const repricingChange =
+          oldQuantity * (row.unitPrice - oldUnitPrice);
+
+        const affordableQuantity = Math.max(
+          0,
+          Math.floor(
+            (remainingAmount - repricingChange) / row.unitPrice,
+          ),
+        );
+
+        const acceptedNowQuantity = Math.min(
+          pendingQuantity,
+          affordableQuantity,
+        );
+
+        let reason = '';
+
+        if (acceptedNowQuantity > 0) {
+          const nextQuantity =
+            oldQuantity + acceptedNowQuantity;
+
+          const savedItem = {
+            ...(previousItem || {}),
+            id: previousItem?.id || createRandomId(),
+            productId:
+              previousItem?.productId ||
+              row.productId ||
+              createRandomId(),
+            productName: row.name,
+            brand: row.brand,
+            category: row.category,
+            quantity: nextQuantity,
+            unitPrice: row.unitPrice,
+            totalPrice: nextQuantity * row.unitPrice,
+            minimumStock: Math.max(
+              0,
+              toNumber(previousItem?.minimumStock),
+            ),
+            status: getWarehouseStatus(
+              nextQuantity,
+              previousItem?.minimumStock,
+            ),
+            lastUpdated: now,
+          };
+
+          if (itemIndex >= 0) {
+            warehouse.items[itemIndex] = savedItem;
+            updatedCount += 1;
+          } else {
+            warehouse.items.push(savedItem);
+            createdCount += 1;
+          }
+
+          const rowAmount =
+            acceptedNowQuantity * row.unitPrice;
+
+          remainingAmount -= rowAmount + repricingChange;
+          importedAmount += rowAmount;
+          acceptedQuantity += acceptedNowQuantity;
+          acceptedRowsCount += 1;
+          row.acceptedQuantity += acceptedNowQuantity;
+
+          warehouse.movements.unshift({
+            id: createRandomId(),
+            representativeId: String(representative.id),
+            requestId,
+            fileName,
+            rowIndex: row.rowIndex,
+            productId: savedItem.productId,
+            productName: savedItem.productName,
+            brand: savedItem.brand,
+            category: savedItem.category,
+            type: 'in',
+            quantity: acceptedNowQuantity,
+            originalQuantity: row.quantity,
+            rejectedQuantity:
+              row.quantity - row.acceptedQuantity,
+            unitPrice: row.unitPrice,
+            rowTotal: rowAmount,
+            reason: 'ورود کالا از Excel',
+            description:
+              `ردیف ${row.rowIndex} از فایل ${fileName}`,
+            createdAt: now,
+          });
+        }
+
+        const pendingAfter =
+          row.quantity - row.acceptedQuantity;
+
+        if (pendingAfter > 0) {
+          reason =
+            budget.warehouseBudget <= 0
+              ? 'سقف مالی نماینده صفر یا نامعتبر است.'
+              : acceptedNowQuantity > 0
+                ? 'فقط بخشی از تعداد ثبت شد؛ سقف مالی برای باقی‌مانده کافی نیست.'
+                : 'سقف مالی باقی‌مانده برای ثبت این کالا و تغییر ارزش موجودی قبلی کافی نیست.';
+        } else {
+          reason = 'تعداد باقی‌مانده این ردیف ثبت شد.';
+        }
+
+        rowResults.push({
+          ...row,
+          previouslyAcceptedQuantity: previouslyAccepted,
+          acceptedNowQuantity,
+          remainingQuantity: pendingAfter,
+          availableBudgetBeforeRow: availableBeforeRow,
+          unitPrice: row.unitPrice,
+          repricingChange,
+          status:
+            pendingAfter === 0
+              ? 'completed'
+              : acceptedNowQuantity > 0
+                ? 'partial'
+                : 'budget_exceeded',
+          reason,
+        });
+      }
+
+      const rejectedItems = rowResults
+        .filter((row) => row.remainingQuantity > 0)
+        .map((row) => ({
+          ...row,
+          rejectedQuantity: row.remainingQuantity,
+        }));
+
+      const rejectedQuantity = rejectedItems.reduce(
+        (sum, row) => sum + row.remainingQuantity,
+        0,
+      );
+
+      const resultData = {
+        ...budget,
+        currentWarehouseValue,
+        remainingWarehouseBudget,
+        importedAmount,
+        remainingAmount,
+        requestedRowsCount: rows.length,
+        acceptedRowsCount,
+        importedCount: acceptedRowsCount,
+        acceptedQuantity,
+        rejectedRowsCount: rejectedItems.length,
+        rejectedQuantity,
+        createdCount,
+        updatedCount,
+        rowResults,
+        rejectedItems,
+        completed: rejectedItems.length === 0,
+        summary: calculateWarehouseSummary(warehouse),
+      };
+
+      if (acceptedQuantity === 0) {
+        return res.status(400).json({
+          success: false,
+          code: 'WAREHOUSE_BUDGET_EXCEEDED',
+          error:
+            'هیچ کالای جدیدی ثبت نشد؛ سقف مالی باقی‌مانده کافی نیست. پس از افزایش سقف، همین فایل را دوباره ارسال کنید.',
+          data: resultData,
+        });
+      }
+
+      const fileRecord = {
+        ...(previousFile || {}),
+        requestId,
+        fileName,
+        createdAt: previousFile?.createdAt || now,
+        updatedAt: now,
+        requestedRowsCount: rows.length,
+        requestedQuantity: rows.reduce(
+          (sum, row) => sum + row.quantity,
+          0,
+        ),
+        acceptedRowsCount: progressRows.filter(
+          (row) => row.acceptedQuantity > 0,
+        ).length,
+        acceptedQuantity: progressRows.reduce(
+          (sum, row) => sum + row.acceptedQuantity,
+          0,
+        ),
+        rejectedRowsCount: rejectedItems.length,
+        rejectedQuantity,
+        importedAmount:
+          toNumber(previousFile?.importedAmount) + importedAmount,
+        completed: rejectedItems.length === 0,
+        rows: progressRows,
+      };
+
+      const fileIndex = warehouse.importedFiles.findIndex(
+        (item) => item.requestId === requestId,
+      );
+
+      if (fileIndex >= 0) {
+        warehouse.importedFiles[fileIndex] = fileRecord;
+      } else {
+        warehouse.importedFiles.unshift(fileRecord);
+      }
+
+      warehouse.updatedAt = now;
+
+      if (!writeRepresentativeWarehouses(warehouses)) {
+        throw new Error('ذخیره اطلاعات انبار ناموفق بود.');
+      }
+
+      const summarySaved = updateRepresentativeWarehouseSummary(
+        representative.id,
+        warehouse,
+      );
+
+      const message = rejectedItems.length
+        ? `${acceptedRowsCount} ردیف و ${acceptedQuantity} قطعه ثبت شد؛ ${rejectedQuantity} قطعه به‌دلیل سقف مالی باقی ماند. پس از افزایش سقف، همین فایل را دوباره ارسال کنید.`
+        : `${acceptedRowsCount} ردیف و ${acceptedQuantity} قطعه ثبت شد؛ این فایل اکنون به‌طور کامل ثبت شده است.`;
+
+      return res.status(201).json({
+        success: true,
+        code: rejectedItems.length
+          ? 'IMPORT_PARTIAL'
+          : 'IMPORT_COMPLETED',
+        message,
+        warning: summarySaved
+          ? undefined
+          : 'کالاها ذخیره شدند، اما خلاصه نماینده بروزرسانی نشد.',
+        data: {
+          ...resultData,
+          summarySaved,
+        },
+      });
+    } catch (error) {
+      return sendServerError(
+        res,
+        error,
+        'خطا در ثبت اکسل انبار.',
+      );
+    }
+  },
+);
+
+router.post(
+  '/:id/warehouse/movements',
+  requireAdmin,
+  (req, res) => {
+    try {
+      const representative = findRepresentative(
+        readRepresentatives(),
+        req.params.id,
+      );
+
+      if (!representative) {
+        return res.status(404).json({
+          success: false,
+          error: 'نماینده موردنظر پیدا نشد.',
+        });
+      }
+
+      const body = req.body || {};
+      const type = body.type === 'out' ? 'out' : 'in';
+      const productId = normalizeValue(body.productId);
+      const quantity = toNumber(body.quantity);
       const minimumStock = Math.max(
         0,
-        toNumber(req.body.minimumStock, 5),
+        toNumber(body.minimumStock, 5),
       );
 
-      const reason = cleanText(
-        req.body.reason,
-        type === 'in'
-          ? 'ورود کالا'
-          : 'خروج کالا',
-      );
-
-      const description = cleanText(
-        req.body.description,
-      );
-
-      if (!productId) {
+      if (!productId || quantity <= 0) {
         return res.status(400).json({
           success: false,
-          error: 'انتخاب محصول الزامی است.',
+          error: 'محصول و تعداد معتبر الزامی هستند.',
         });
       }
 
-      if (quantity <= 0) {
-        return res.status(400).json({
-          success: false,
-          error:
-            'تعداد کالا باید بیشتر از صفر باشد.',
-        });
-      }
-
-      const products = readProducts();
-
-      const product = products.find((item) => {
-        return sameValue(item.id, productId);
-      });
+      const product = readProducts().find((item) =>
+        sameValue(item.id, productId),
+      );
 
       if (!product) {
         return res.status(404).json({
@@ -982,245 +830,258 @@ router.post(
         });
       }
 
-      const warehouses =
-        readRepresentativeWarehouses();
-
-      let warehouseIndex = warehouses.findIndex(
-        (warehouse) => {
-          return sameValue(
-            warehouse.representativeId,
-            representativeId,
-          );
-        },
+      const warehouses = readRepresentativeWarehouses();
+      const { warehouse } = getOrCreateWarehouse(
+        warehouses,
+        representative.id,
       );
 
-      if (warehouseIndex < 0) {
-        warehouses.push(
-          createEmptyWarehouse(representative.id),
-        );
+      const index = warehouse.items.findIndex((item) =>
+        sameValue(item.productId, productId),
+      );
 
-        warehouseIndex = warehouses.length - 1;
+      const oldItem = index >= 0 ? warehouse.items[index] : null;
+      const oldQuantity = toNumber(oldItem?.quantity);
+
+      if (
+        type === 'out' &&
+        (!oldItem || quantity > oldQuantity)
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: `موجودی کافی نیست. موجودی فعلی: ${oldQuantity}`,
+        });
       }
 
-      const warehouse = warehouses[warehouseIndex];
+      const requestedPrice = toNumber(body.unitPrice);
 
-      warehouse.items = Array.isArray(
-        warehouse.items,
-      )
-        ? warehouse.items
-        : [];
-
-      warehouse.movements = Array.isArray(
-        warehouse.movements,
-      )
-        ? warehouse.movements
-        : [];
-
-      let itemIndex = warehouse.items.findIndex(
-        (item) => {
-          return sameValue(
-            item.productId,
-            productId,
-          );
-        },
-      );
-
-      const now = new Date().toISOString();
-
-      if (type === 'in') {
-        const unitPrice =
-          requestedUnitPrice > 0
-            ? requestedUnitPrice
+      const unitPrice =
+        type === 'out'
+          ? toNumber(oldItem.unitPrice)
+          : requestedPrice > 0
+            ? requestedPrice
             : toNumber(product.price);
 
-        if (unitPrice <= 0) {
-          return res.status(400).json({
-            success: false,
-            error:
-              'قیمت محصول برای ورود کالا معتبر نیست.',
-          });
-        }
-
-        if (itemIndex < 0) {
-          const newItem = {
-            id: createRandomId(),
-            productId: String(product.id).trim(),
-            productName: cleanText(product.name),
-            brand: cleanText(product.brand),
-            category: cleanText(product.category),
-            quantity,
-            unitPrice,
-            totalPrice: quantity * unitPrice,
-            minimumStock,
-            status: getWarehouseStatus(
-              quantity,
-              minimumStock,
-            ),
-            lastUpdated: now,
-          };
-
-          warehouse.items.push(newItem);
-          itemIndex = warehouse.items.length - 1;
-        } else {
-          const oldItem = warehouse.items[itemIndex];
-
-          const nextQuantity =
-            toNumber(oldItem.quantity) + quantity;
-
-          const finalUnitPrice =
-            requestedUnitPrice > 0
-              ? requestedUnitPrice
-              : toNumber(
-                  oldItem.unitPrice,
-                  toNumber(product.price),
-                );
-
-          warehouse.items[itemIndex] = {
-            ...oldItem,
-            productId: String(product.id).trim(),
-            productName: cleanText(product.name),
-            brand: cleanText(
-              oldItem.brand || product.brand,
-            ),
-            category: cleanText(
-              oldItem.category || product.category,
-            ),
-            quantity: nextQuantity,
-            unitPrice: finalUnitPrice,
-            totalPrice:
-              nextQuantity * finalUnitPrice,
-            minimumStock,
-            status: getWarehouseStatus(
-              nextQuantity,
-              minimumStock,
-            ),
-            lastUpdated: now,
-          };
-        }
-      } else {
-        if (itemIndex < 0) {
-          return res.status(400).json({
-            success: false,
-            error:
-              'این محصول در انبار نماینده موجود نیست.',
-          });
-        }
-
-        const oldItem = warehouse.items[itemIndex];
-
-        const currentQuantity = toNumber(
-          oldItem.quantity,
-        );
-
-        if (quantity > currentQuantity) {
-          return res.status(400).json({
-            success: false,
-            error:
-              `موجودی کافی نیست. موجودی فعلی: ${currentQuantity}`,
-          });
-        }
-
-        const nextQuantity =
-          currentQuantity - quantity;
-
-        warehouse.items[itemIndex] = {
-          ...oldItem,
-          quantity: nextQuantity,
-          totalPrice:
-            nextQuantity *
-            toNumber(oldItem.unitPrice),
-          status: getWarehouseStatus(
-            nextQuantity,
-            oldItem.minimumStock,
-          ),
-          lastUpdated: now,
-        };
+      if (type === 'in' && unitPrice <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'قیمت محصول معتبر نیست.',
+        });
       }
 
-      const savedItem = warehouse.items[itemIndex];
+      const now = new Date().toISOString();
+      const nextQuantity =
+        type === 'in'
+          ? oldQuantity + quantity
+          : oldQuantity - quantity;
+
+      const savedItem = {
+        ...(oldItem || {}),
+        id: oldItem?.id || createRandomId(),
+        productId: String(product.id),
+        productName: cleanText(product.name),
+        brand: cleanText(oldItem?.brand || product.brand),
+        category: cleanText(oldItem?.category || product.category),
+        quantity: nextQuantity,
+        unitPrice,
+        totalPrice: nextQuantity * unitPrice,
+        minimumStock:
+          type === 'out'
+            ? toNumber(oldItem.minimumStock)
+            : minimumStock,
+        lastUpdated: now,
+      };
+
+      savedItem.status = getWarehouseStatus(
+        nextQuantity,
+        savedItem.minimumStock,
+      );
+
+      if (index >= 0) {
+        warehouse.items[index] = savedItem;
+      } else {
+        warehouse.items.push(savedItem);
+      }
 
       const movement = {
         id: createRandomId(),
-        representativeId: String(
-          representative.id,
-        ).trim(),
-        productId: String(product.id).trim(),
-        productName: cleanText(product.name),
-        brand: cleanText(
-          savedItem?.brand || product.brand,
-        ),
-        category: cleanText(
-          savedItem?.category || product.category,
-        ),
+        representativeId: String(representative.id),
+        productId: String(product.id),
+        productName: savedItem.productName,
+        brand: savedItem.brand,
+        category: savedItem.category,
         type,
         quantity,
-        unitPrice: toNumber(
-          savedItem?.unitPrice,
+        unitPrice,
+        rowTotal: quantity * unitPrice,
+        reason: cleanText(
+          body.reason,
+          type === 'in' ? 'ورود کالا' : 'خروج کالا',
         ),
-        rowTotal:
-          quantity *
-          toNumber(savedItem?.unitPrice),
-        reason,
-        description,
+        description: cleanText(body.description),
         createdAt: now,
       };
 
       warehouse.movements.unshift(movement);
       warehouse.updatedAt = now;
 
-      warehouses[warehouseIndex] = warehouse;
-
-      const warehouseSaved =
-        writeRepresentativeWarehouses(warehouses);
-
-      if (!warehouseSaved) {
-        return res.status(500).json({
-          success: false,
-          error:
-            'ذخیره تغییرات انبار نماینده ناموفق بود.',
-        });
+      if (!writeRepresentativeWarehouses(warehouses)) {
+        throw new Error('ذخیره گردش انبار ناموفق بود.');
       }
 
-      const summarySaved =
-        updateRepresentativeWarehouseSummary(
-          representative.id,
-          warehouse,
-        );
-
-      if (!summarySaved) {
-        return res.status(500).json({
-          success: false,
-          error:
-            'کالا ثبت شد، اما بروزرسانی خلاصه نماینده ناموفق بود.',
-        });
-      }
+      const summarySaved = updateRepresentativeWarehouseSummary(
+        representative.id,
+        warehouse,
+      );
 
       return res.status(201).json({
         success: true,
         message:
           type === 'in'
-            ? 'ورود کالا به انبار نماینده ثبت شد.'
-            : 'خروج کالا از انبار نماینده ثبت شد.',
+            ? 'ورود کالا ثبت شد.'
+            : 'خروج کالا ثبت شد.',
         data: {
           item: savedItem,
           movement,
-          summary: calculateWarehouseSummary(
-            warehouse,
-          ),
+          summary: calculateWarehouseSummary(warehouse),
+          summarySaved,
         },
       });
     } catch (error) {
-      console.error(
-        'خطا در ثبت گردش انبار نماینده:',
+      return sendServerError(
+        res,
         error,
+        'خطا در ثبت گردش انبار.',
+      );
+    }
+  },
+);
+
+router.delete(
+  '/:id/warehouse/items/:itemId',
+  requireAdmin,
+  (req, res) => {
+    try {
+      const representative = findRepresentative(
+        readRepresentatives(),
+        req.params.id,
       );
 
-      return res.status(500).json({
-        success: false,
-        error:
-          error.message ||
-          'خطا در ثبت گردش انبار نماینده.',
+      if (!representative) {
+        return res.status(404).json({
+          success: false,
+          error: 'نماینده موردنظر پیدا نشد.',
+        });
+      }
+
+      const warehouses = readRepresentativeWarehouses();
+      const { warehouse } = getOrCreateWarehouse(
+        warehouses,
+        representative.id,
+      );
+
+      const index = warehouse.items.findIndex((item) =>
+        sameValue(item.id, req.params.itemId),
+      );
+
+      if (index < 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'کالا در انبار پیدا نشد.',
+        });
+      }
+
+      const deletedItem = warehouse.items.splice(index, 1)[0];
+
+      if (deletedItem.productId) {
+        warehouse.movements = warehouse.movements.filter(
+          (movement) =>
+            !sameValue(movement.productId, deletedItem.productId),
+        );
+      }
+
+      warehouse.updatedAt = new Date().toISOString();
+
+      if (!writeRepresentativeWarehouses(warehouses)) {
+        throw new Error('ذخیره حذف کالا ناموفق بود.');
+      }
+
+      const summarySaved = updateRepresentativeWarehouseSummary(
+        representative.id,
+        warehouse,
+      );
+
+      return res.json({
+        success: true,
+        message: 'کالا از انبار حذف شد.',
+        data: {
+          deletedItem,
+          summary: calculateWarehouseSummary(warehouse),
+          summarySaved,
+        },
       });
+    } catch (error) {
+      return sendServerError(res, error, 'خطا در حذف کالا.');
+    }
+  },
+);
+
+router.delete(
+  '/:id/warehouse',
+  requireAdmin,
+  (req, res) => {
+    try {
+      const representative = findRepresentative(
+        readRepresentatives(),
+        req.params.id,
+      );
+
+      if (!representative) {
+        return res.status(404).json({
+          success: false,
+          error: 'نماینده موردنظر پیدا نشد.',
+        });
+      }
+
+      const warehouses = readRepresentativeWarehouses();
+      const { warehouse } = getOrCreateWarehouse(
+        warehouses,
+        representative.id,
+      );
+
+      const deletedItemsCount = warehouse.items.length;
+      const deletedMovementsCount = warehouse.movements.length;
+
+      warehouse.items = [];
+      warehouse.movements = [];
+      warehouse.importedFiles = [];
+      warehouse.updatedAt = new Date().toISOString();
+
+      if (!writeRepresentativeWarehouses(warehouses)) {
+        throw new Error('ذخیره حذف کل موجودی ناموفق بود.');
+      }
+
+      const summarySaved = updateRepresentativeWarehouseSummary(
+        representative.id,
+        warehouse,
+      );
+
+      return res.json({
+        success: true,
+        message: 'کل موجودی انبار نماینده حذف شد.',
+        data: {
+          deletedItemsCount,
+          deletedMovementsCount,
+          summary: calculateWarehouseSummary(warehouse),
+          summarySaved,
+        },
+      });
+    } catch (error) {
+      return sendServerError(
+        res,
+        error,
+        'خطا در حذف کل موجودی.',
+      );
     }
   },
 );

@@ -1,20 +1,19 @@
 require('dotenv').config();
 
-
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-
 const {
+  DATA_DIR,
   ensureDataFiles,
   readRepresentatives,
   readRepresentativeWarehouses,
   readSalesReports,
 } = require('./helpers/jsonStorage');
-
 
 const authRouter = require('./routes/auth.routes');
 const productsRouter = require('./routes/products.routes');
@@ -31,101 +30,157 @@ const adminSupportRequestsRouter = require('./routes/adminSupportRequests.routes
 const notesRouter = require('./routes/notes.routes');
 const warrantiesRouter = require('./routes/warranties.routes');
 
-
 const app = express();
-
 
 const PORT = Number(process.env.PORT) || 5000;
 
-
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
-
-
-// اطمینان از وجود فایل‌های داده
-ensureDataFiles();
-
-
-// ساخت پوشهٔ آپلودها اگر وجود ندارد
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, {
-    recursive: true,
-  });
-}
-
-
-// پوشهٔ فایل‌های نمایندگان
-const REPRESENTATIVES_FILES_DIR = path.join(
+const DEFAULT_LOCAL_DATA_DIR = path.join(
   __dirname,
   'data',
-  'representatives',
 );
 
+const STORAGE_DIR = DATA_DIR ||
+  DEFAULT_LOCAL_DATA_DIR;
 
-if (!fs.existsSync(REPRESENTATIVES_FILES_DIR)) {
-  fs.mkdirSync(REPRESENTATIVES_FILES_DIR, {
+const UPLOADS_DIR = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(STORAGE_DIR, 'uploads');
+
+const REPRESENTATIVES_FILES_DIR =
+  path.join(
+    STORAGE_DIR,
+    'representatives',
+  );
+
+const WARRANTIES_UPLOADS_DIR =
+  path.join(
+    UPLOADS_DIR,
+    'warranties',
+  );
+
+ensureDataFiles();
+
+fs.mkdirSync(UPLOADS_DIR, {
+  recursive: true,
+});
+
+fs.mkdirSync(
+  REPRESENTATIVES_FILES_DIR,
+  {
     recursive: true,
-  });
-}
+  },
+);
 
+fs.mkdirSync(
+  WARRANTIES_UPLOADS_DIR,
+  {
+    recursive: true,
+  },
+);
 
-// پوشهٔ عکس‌های درخواست گارانتی
-const WARRANTIES_UPLOADS_DIR = path.join(
+console.log(
+  '📁 مسیر داده‌ها:',
+  STORAGE_DIR,
+);
+
+console.log(
+  '📁 مسیر آپلودها:',
   UPLOADS_DIR,
-  'warranties',
 );
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
-if (!fs.existsSync(WARRANTIES_UPLOADS_DIR)) {
-  fs.mkdirSync(WARRANTIES_UPLOADS_DIR, {
-    recursive: true,
-  });
-}
+const corsOptions = {
+  origin(origin, callback) {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin)
+    ) {
+      callback(null, true);
+      return;
+    }
 
+    if (
+      process.env.NODE_ENV !== 'production'
+    ) {
+      callback(null, true);
+      return;
+    }
 
-// ========== Middleware Cache-Control ==========
-// غیرفعال کردن کامل Cache برای همه درخواست‌ها
+    callback(
+      new Error(
+        'Origin توسط CORS مجاز نیست.',
+      ),
+    );
+  },
+
+  credentials: true,
+
+  methods: [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS',
+  ],
+
+  allowedHeaders: [
+    'Accept',
+    'Content-Type',
+    'Authorization',
+    'Cache-Control',
+    'Pragma',
+    'X-Requested-With',
+  ],
+
+  exposedHeaders: [
+    'Content-Length',
+    'Content-Disposition',
+  ],
+
+  optionsSuccessStatus: 204,
+
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
+
+app.options('*', cors(corsOptions));
+
 app.use((req, res, next) => {
   res.setHeader(
     'Cache-Control',
     'no-store, no-cache, must-revalidate, proxy-revalidate',
   );
 
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader(
+    'Pragma',
+    'no-cache',
+  );
+
+  res.setHeader(
+    'Expires',
+    '0',
+  );
+
+  res.setHeader(
+    'Surrogate-Control',
+    'no-store',
+  );
 
   next();
 });
-// ===============================================
-
-
-// میدل‌ورها
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-    methods: [
-      'GET',
-      'POST',
-      'PUT',
-      'PATCH',
-      'DELETE',
-      'OPTIONS',
-    ],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-    ],
-  }),
-);
-
 
 app.use(
   express.json({
     limit: '10mb',
   }),
 );
-
 
 app.use(
   express.urlencoded({
@@ -134,24 +189,29 @@ app.use(
   }),
 );
 
+app.use(cookieParser());
 
-app.use('/uploads', express.static(UPLOADS_DIR));
+app.use(
+  '/uploads',
+  express.static(UPLOADS_DIR),
+);
 
-
-// Health check
 app.get('/api/health', (_req, res) => {
   return res.status(200).json({
     success: true,
     status: 'ok',
     message: 'Main backend is running.',
+    dataDirectory: STORAGE_DIR,
     timestamp: new Date().toISOString(),
   });
 });
 
-
-// روت‌های API
 app.use('/api/auth', authRouter);
-app.use('/api/products', productsRouter);
+
+app.use(
+  '/api/products',
+  productsRouter,
+);
 
 app.use(
   '/api/representatives',
@@ -174,11 +234,19 @@ app.use(
 );
 
 app.use(
+  '/api/representatives',
+  representativeDashboardRouter,
+);
+
+app.use(
   '/api/sales-from-warehouse',
   salesFromWarehouseRouter,
 );
 
-app.use('/api/shipments', shipmentsRouter);
+app.use(
+  '/api/shipments',
+  shipmentsRouter,
+);
 
 app.use(
   '/api/return-requests',
@@ -200,24 +268,35 @@ app.use(
   adminSupportRequestsRouter,
 );
 
-app.use('/api/notes', notesRouter);
+app.use(
+  '/api/notes',
+  notesRouter,
+);
 
-app.use('/api/warranties', warrantiesRouter);
+app.use(
+  '/api/warranties',
+  warrantiesRouter,
+);
 
-
-// ========== DEBUG: دانلود فایل‌های JSON ==========
-app.get('/api/debug/data-files', (req, res) => {
+app.get('/api/debug/data-files', (_req, res) => {
   try {
-    const representatives = readRepresentatives();
-    const warehouses = readRepresentativeWarehouses();
-    const sales = readSalesReports();
+    const representatives =
+      readRepresentatives();
 
+    const warehouses =
+      readRepresentativeWarehouses();
 
-    return res.json({
+    const sales =
+      readSalesReports();
+
+    return res.status(200).json({
       success: true,
       data: {
-        representativesCount: representatives.length,
-        warehousesCount: warehouses.length,
+        dataDirectory: STORAGE_DIR,
+        representativesCount:
+          representatives.length,
+        warehousesCount:
+          warehouses.length,
         salesCount: sales.length,
         representatives,
         warehouses,
@@ -225,20 +304,20 @@ app.get('/api/debug/data-files', (req, res) => {
       },
     });
   } catch (error) {
-    console.error('خطا در خواندن فایل‌های JSON:', error);
+    console.error(
+      'خطا در خواندن فایل‌های داده:',
+      error,
+    );
 
     return res.status(500).json({
       success: false,
       error:
-        error.message ||
+        error?.message ||
         'خطا در خواندن داده‌ها.',
     });
   }
 });
-// ================================================
 
-
-// 404 برای مسیرهای تعریف‌نشده
 app.use((req, res) => {
   return res.status(404).json({
     success: false,
@@ -248,193 +327,154 @@ app.use((req, res) => {
   });
 });
 
+app.use(
+  (error, _req, res, _next) => {
+    console.error(
+      '❌ Server error:',
+      error,
+    );
 
-// هندلر خطاهای سراسری
-app.use((error, _req, res, _next) => {
-  console.error('❌ Server error:', error);
+    if (
+      error?.code === 'LIMIT_FILE_SIZE'
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          'حجم فایل نباید بیشتر از 10 مگابایت باشد.',
+      });
+    }
 
+    if (
+      error?.name === 'MulterError'
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          error.message ||
+          'خطا در دریافت فایل ارسالی.',
+      });
+    }
 
-  if (error?.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({
-      success: false,
-      error: 'حجم فایل نباید بیشتر از 10 مگابایت باشد.',
-    });
-  }
+    if (
+      error?.message ===
+      'Origin توسط CORS مجاز نیست.'
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: error.message,
+      });
+    }
 
+    if (error?.message) {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
 
-  if (error?.name === 'MulterError') {
-    return res.status(400).json({
+    return res.status(500).json({
       success: false,
       error:
-        error.message ||
-        'خطا در دریافت فایل ارسالی.',
+        'خطای داخلی سرور رخ داد.',
     });
-  }
+  },
+);
 
-
-  if (error?.message) {
-    return res.status(400).json({
-      success: false,
-      error: error.message,
-    });
-  }
-
-
-  return res.status(500).json({
-    success: false,
-    error: 'خطای داخلی سرور رخ داد.',
-  });
-});
-
-
-// گرفتن IPهای محلی برای نمایش در لاگ
 function getLocalIPs() {
-  const interfaces = os.networkInterfaces();
+  const interfaces =
+    os.networkInterfaces();
+
   const ips = [];
 
-
-  for (const interfaceList of Object.values(interfaces)) {
+  for (const interfaceList of Object.values(
+    interfaces,
+  )) {
     if (!interfaceList) {
       continue;
     }
 
-
     for (const network of interfaceList) {
-      const isIPv4 = network.family === 'IPv4';
+      const address =
+        network.address;
+
+      const isIPv4 =
+        network.family === 'IPv4' ||
+        network.family === 4;
 
       const isPrivateNetwork =
-        network.address.startsWith('192.168.') ||
-        network.address.startsWith('10.') ||
-        network.address.startsWith('172.');
-
+        address.startsWith('192.168.') ||
+        address.startsWith('10.') ||
+        address.startsWith('172.');
 
       if (
         isIPv4 &&
         !network.internal &&
         isPrivateNetwork
       ) {
-        ips.push(network.address);
+        ips.push(address);
       }
     }
   }
 
-
   return ips;
 }
 
+app.listen(
+  PORT,
+  '0.0.0.0',
+  () => {
+    const ips = getLocalIPs();
 
-// شروع سرور
-app.listen(PORT, '0.0.0.0', () => {
-  const ips = getLocalIPs();
+    console.log('');
+    console.log(
+      '🚀 ====================================',
+    );
+    console.log(
+      '✅ Main backend is running!',
+    );
+    console.log(
+      '🚀 ====================================',
+    );
 
+    console.log(
+      `📍 API: http://localhost:${PORT}/api`,
+    );
 
-  console.log('\n🚀 ====================================');
-  console.log('✅ Main backend is running!');
-  console.log('🚀 ====================================');
+    console.log(
+      `📍 Health: http://localhost:${PORT}/api/health`,
+    );
 
-  console.log(
-    `📍 API: http://localhost:${PORT}/api`,
-  );
+    console.log(
+      `📦 Products: http://localhost:${PORT}/api/products`,
+    );
 
-  console.log(
-    `📍 Health: http://localhost:${PORT}/api/health`,
-  );
+    console.log(
+      `📁 Data directory: ${STORAGE_DIR}`,
+    );
 
-  console.log(
-    `🔐 Auth: http://localhost:${PORT}/api/auth`,
-  );
+    console.log(
+      `📁 Uploads directory: ${UPLOADS_DIR}`,
+    );
 
-  console.log(
-    `📦 Products: http://localhost:${PORT}/api/products`,
-  );
+    console.log(
+      `🔍 Debug data: http://localhost:${PORT}/api/debug/data-files`,
+    );
 
-  console.log(
-    `📤 Excel upload: POST http://localhost:${PORT}/api/products/upload`,
-  );
-
-  console.log(
-    `👥 Representatives: http://localhost:${PORT}/api/representatives`,
-  );
-
-  console.log(
-    `📁 Representative files: http://localhost:${PORT}/api/representatives/:id/files`,
-  );
-
-  console.log(
-    `🏪 Representative warehouse: http://localhost:${PORT}/api/representatives/:id/warehouse`,
-  );
-
-  console.log(
-    `👤 Representative dashboard: http://localhost:${PORT}/api/representative/dashboard`,
-  );
-
-  console.log(
-    `🔄 Warehouse summary sync: POST http://localhost:${PORT}/api/representatives/warehouse/sync-summaries`,
-  );
-
-  console.log(
-    `🚚 Shipments: http://localhost:${PORT}/api/shipments`,
-  );
-
-  console.log(
-    `↩️ Return requests: http://localhost:${PORT}/api/return-requests`,
-  );
-
-  console.log(
-    `👤 My return requests: http://localhost:${PORT}/api/return-requests/my`,
-  );
-
-  console.log(
-    `🛡️ Admin return requests: http://localhost:${PORT}/api/admin/return-requests`,
-  );
-
-  console.log(
-    `🆘 Support requests: http://localhost:${PORT}/api/support-requests`,
-  );
-
-  console.log(
-    `👤 My support requests: http://localhost:${PORT}/api/support-requests/mine`,
-  );
-
-  console.log(
-    `🛡️ Admin support requests: http://localhost:${PORT}/api/admin/support-requests`,
-  );
-
-  console.log(
-    `📝 Notes: http://localhost:${PORT}/api/notes`,
-  );
-
-  console.log(
-    `🛡️ Warranties: http://localhost:${PORT}/api/warranties`,
-  );
-
-  console.log(
-    `📦 Warranty form data: http://localhost:${PORT}/api/warranties/form-data`,
-  );
-
-  console.log(
-    `📁 Warranty images: http://localhost:${PORT}/uploads/warranties`,
-  );
-
-  console.log(
-    `📁 Uploads: http://localhost:${PORT}/uploads`,
-  );
-
-  console.log(
-    `🔍 Debug data: http://localhost:${PORT}/api/debug/data-files`,
-  );
-
-
-  if (ips.length > 0) {
-    console.log('📱 Network addresses:');
-
-    ips.forEach((ip) => {
+    if (ips.length > 0) {
       console.log(
-        `   http://${ip}:${PORT}/api`,
+        '📱 Network addresses:',
       );
-    });
-  }
 
+      ips.forEach((ip) => {
+        console.log(
+          `   http://${ip}:${PORT}/api`,
+        );
+      });
+    }
 
-  console.log('🚀 ====================================\n');
-});
+    console.log(
+      '🚀 ====================================',
+    );
+    console.log('');
+  },
+);

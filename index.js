@@ -39,8 +39,8 @@ const DEFAULT_LOCAL_DATA_DIR = path.join(
   'data',
 );
 
-const STORAGE_DIR = DATA_DIR ||
-  DEFAULT_LOCAL_DATA_DIR;
+const STORAGE_DIR =
+  DATA_DIR || DEFAULT_LOCAL_DATA_DIR;
 
 const UPLOADS_DIR = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
@@ -89,27 +89,40 @@ console.log(
 );
 
 const allowedOrigins = [
+  'https://yadakamir.netlify.app',
+  'https://www.yadakamir.netlify.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   process.env.FRONTEND_URL,
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .map((origin) =>
+    origin.trim().replace(/\/+$/, ''),
+  );
+
+console.log(
+  '🌐 Allowed CORS origins:',
+  allowedOrigins,
+);
 
 const corsOptions = {
   origin(origin, callback) {
+    const normalizedOrigin = origin
+      ? origin.trim().replace(/\/+$/, '')
+      : '';
+
     if (
-      !origin ||
-      allowedOrigins.includes(origin)
+      !normalizedOrigin ||
+      allowedOrigins.includes(normalizedOrigin)
     ) {
       callback(null, true);
       return;
     }
 
-    if (
-      process.env.NODE_ENV !== 'production'
-    ) {
-      callback(null, true);
-      return;
-    }
+    console.error(
+      '❌ CORS origin rejected:',
+      normalizedOrigin,
+    );
 
     callback(
       new Error(
@@ -150,7 +163,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.options('*', cors(corsOptions));
+app.options(
+  '*',
+  cors(corsOptions),
+);
 
 app.use((req, res, next) => {
   res.setHeader(

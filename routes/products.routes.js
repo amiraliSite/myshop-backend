@@ -5,6 +5,7 @@ const XLSX = require('xlsx');
 const {
   readProducts,
   writeProducts,
+  getFilePath,
 } = require('../helpers/jsonStorage');
 
 const {
@@ -266,7 +267,7 @@ function updateProduct(
       category,
       oldProduct.category || '',
     ),
-    active: oldProduct.active !== false,
+    active: true,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -367,6 +368,16 @@ router.post(
         });
       }
 
+      const isFreshImport =
+        products.length === 0;
+
+      console.log('📊 وضعیت قبل از آپلود:', {
+        productsBeforeUpload: products.length,
+        isFreshImport,
+        rowsInExcel: rows.length,
+        productsFile: getFilePath('products'),
+      });
+
       let createdCount = 0;
       let updatedCount = 0;
       let unchangedCount = 0;
@@ -415,10 +426,12 @@ router.post(
           }
 
           const productIndex =
-            findProductIndexByName(
-              products,
-              name,
-            );
+            isFreshImport
+              ? -1
+              : findProductIndexByName(
+                  products,
+                  name,
+                );
 
           if (productIndex < 0) {
             const newProduct =
@@ -461,7 +474,8 @@ router.post(
 
           if (
             oldPrice === price &&
-            oldCategory === category
+            oldCategory === category &&
+            oldProduct.active !== false
           ) {
             unchangedCount += 1;
 
@@ -519,6 +533,53 @@ router.post(
         }
       });
 
+      const processedRows =
+        createdCount +
+        updatedCount +
+        unchangedCount +
+        skippedCount;
+
+      const difference =
+        rows.length - processedRows;
+
+      console.log('📊 نتیجه کامل آپلود:', {
+        totalRows: rows.length,
+        createdCount,
+        updatedCount,
+        unchangedCount,
+        skippedCount,
+        processedRows,
+        difference,
+      });
+
+      if (difference !== 0) {
+        return res.status(500).json({
+          success: false,
+          error:
+            'تعداد ردیف‌های پردازش‌شده با تعداد ردیف‌های Excel برابر نیست.',
+          data: makeUploadData({
+            fileName:
+              req.file.originalname,
+            sheetName,
+            totalRows: rows.length,
+            createdCount,
+            updatedCount,
+            unchangedCount,
+            zeroPriceCount,
+            skippedCount,
+            totalProducts:
+              products.filter(
+                (product) =>
+                  product.active !== false,
+              ).length,
+            createdProducts,
+            updatedProducts,
+            unchangedProducts,
+            skippedRows,
+          }),
+        });
+      }
+
       const hasChanges =
         createdCount > 0 ||
         updatedCount > 0;
@@ -541,7 +602,10 @@ router.post(
             zeroPriceCount,
             skippedCount,
             totalProducts:
-              products.length,
+              products.filter(
+                (product) =>
+                  product.active !== false,
+              ).length,
             createdProducts,
             updatedProducts,
             unchangedProducts,
@@ -562,9 +626,7 @@ router.post(
       const savedProducts =
         readProducts();
 
-      if (
-        !Array.isArray(savedProducts)
-      ) {
+      if (!Array.isArray(savedProducts)) {
         throw new Error(
           'محصولات ذخیره‌شده قابل خواندن نیستند.',
         );
@@ -579,6 +641,12 @@ router.post(
         );
       }
 
+      const activeProducts =
+        savedProducts.filter(
+          (product) =>
+            product.active !== false,
+        );
+
       console.log(
         '✅ نتیجه آپلود:',
         {
@@ -587,7 +655,9 @@ router.post(
           unchangedCount,
           skippedCount,
           totalProducts:
-            savedProducts.length,
+            activeProducts.length,
+          productsFile:
+            getFilePath('products'),
         },
       );
 
@@ -606,7 +676,7 @@ router.post(
           zeroPriceCount,
           skippedCount,
           totalProducts:
-            savedProducts.length,
+            activeProducts.length,
           createdProducts,
           updatedProducts,
           unchangedProducts,
@@ -644,8 +714,15 @@ router.get('/', (_req, res) => {
       });
     }
 
+    const activeProducts =
+      products.filter(
+        (product) =>
+          product &&
+          product.active !== false,
+      );
+
     const sortedProducts = [
-      ...products,
+      ...activeProducts,
     ].sort((first, second) => {
       const firstDate = new Date(
         first.updatedAt ||
@@ -694,7 +771,9 @@ router.get('/:id', (req, res) => {
 
     const product = products.find((item) => {
       return (
-        String(item.id || '') === productId
+        String(item.id || '') ===
+          productId &&
+        item.active !== false
       );
     });
 
@@ -973,12 +1052,28 @@ router.delete('/:id', (req, res) => {
       req.params.id || '',
     ).trim();
 
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        error:
+          'شناسه محصول معتبر نیست.',
+      });
+    }
+
     const products = readProducts();
+
+    if (!Array.isArray(products)) {
+      return res.status(500).json({
+        success: false,
+        error:
+          'ساختار فایل محصولات معتبر نیست.',
+      });
+    }
 
     const productIndex =
       products.findIndex((item) => {
         return (
-          String(item.id || '') ===
+          String(item?.id || '').trim() ===
           productId
         );
       });
@@ -986,22 +1081,21 @@ router.delete('/:id', (req, res) => {
     if (productIndex < 0) {
       return res.status(404).json({
         success: false,
-        error:
-          'محصول پیدا نشد.',
+        error: 'محصول پیدا نشد.',
       });
     }
 
-    const deletedProduct = {
-      ...products[productIndex],
-      active: false,
-      updatedAt: new Date().toISOString(),
-    };
+    const deletedProduct =
+      products[productIndex];
 
-    products[productIndex] =
-      deletedProduct;
+    const remainingProducts =
+      products.filter(
+        (_product, index) =>
+          index !== productIndex,
+      );
 
     const writeResult =
-      writeProducts(products);
+      writeProducts(remainingProducts);
 
     if (writeResult === false) {
       throw new Error(
@@ -1009,13 +1103,69 @@ router.delete('/:id', (req, res) => {
       );
     }
 
-    deactivateWarehouseItem(productId);
+    const savedProducts =
+      readProducts();
+
+    if (!Array.isArray(savedProducts)) {
+      throw new Error(
+        'محصولات پس از حذف قابل خواندن نیستند.',
+      );
+    }
+
+    const stillExists =
+      savedProducts.some((item) => {
+        return (
+          String(item?.id || '').trim() ===
+          productId
+        );
+      });
+
+    if (stillExists) {
+      throw new Error(
+        'محصول پس از حذف هنوز در فایل محصولات وجود دارد.',
+      );
+    }
+
+    try {
+      deactivateWarehouseItem(productId);
+    } catch (warehouseError) {
+      console.error(
+        '⚠️ خطا در غیرفعال‌سازی کالا در انبار:',
+        warehouseError,
+      );
+    }
+
+    console.log(
+      '✅ محصول واقعاً حذف شد:',
+      {
+        id: productId,
+        name: getProductName(
+          deletedProduct,
+        ),
+        remainingProducts:
+          savedProducts.filter(
+            (product) =>
+              product.active !== false,
+          ).length,
+      },
+    );
 
     return res.status(200).json({
       success: true,
+      deleted: true,
       message:
-        'محصول غیرفعال شد.',
-      data: deletedProduct,
+        'محصول با موفقیت حذف شد.',
+      data: {
+        id: productId,
+        name: getProductName(
+          deletedProduct,
+        ),
+      },
+      count:
+        savedProducts.filter(
+          (product) =>
+            product.active !== false,
+        ).length,
     });
   } catch (error) {
     console.error(

@@ -825,10 +825,6 @@ router.patch('/:id/status', requireRole('admin'), async (req, res) => {
 
     // ---------- ارسال SMS با الگو ----------
     const statusLabel = STATUS_LABELS[nextStatus] || nextStatus;
-    const shipmentNumber =
-      updated.shipmentNumber ||
-      updated.id ||
-      '—';
 
 
     // خواندن نام و شماره نماینده از representatives.json
@@ -848,13 +844,27 @@ router.patch('/:id/status', requireRole('admin'), async (req, res) => {
       normalizeDigits(representative?.phone) || TEST_PHONE_NUMBER;
 
 
+    // 🔻🔻 تغییر اینجا انجام شده — شمارهٔ طولانی بار کوتاه شده 🔻🔻
+    // فقط ۸ کاراکتر آخر آی‌دی بره (مثل ABC12345) — کوتاه + قابل رهگیری.
+    const fullRef =
+      cleanText(updated.shipmentNumber) ||
+      cleanText(updated.id) ||
+      '';
+
+
+    const shortRef = fullRef
+      ? fullRef.slice(-8).toUpperCase()
+      : '—';
+    // 🔺🔺 پایان تغییر 🔺🔺
+
+
     // ارسال به‌صورت آرایه برای الگوی {0}، {1}، {2}
     // {0} = نام نماینده
-    // {1} = شماره بار
+    // {1} = شناسهٔ کوتاه بار (به جای شمارهٔ طولانی قبلی)
     // {2} = وضعیت بار
     const smsResult = await sendSms(representativePhone, [
       representativeName,
-      shipmentNumber,
+      shortRef,
       statusLabel,
     ]);
 

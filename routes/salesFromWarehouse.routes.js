@@ -348,13 +348,6 @@ const formatJalaliDate = (jalaliDate) => {
 
 /*
   تاریخ واقعیِ میلادیِ روز مجاز بعدی را پیدا می‌کند.
-
-  نکته مهم:
-  این تابع هیچ تبدیل تقریبی انجام نمی‌دهد.
-  از امروز، روزبه‌روز جلو می‌رود و تاریخ هر روز را با
-  تقویم رسمی شمسی Intl بررسی می‌کند.
-
-  بنابراین برای مهر، آبان، اسفند و سال کبیسه هم درست است.
 */
 const getNextAllowedSaleDate = (startDate = new Date()) => {
   const candidate = new Date(startDate);
@@ -362,10 +355,6 @@ const getNextAllowedSaleDate = (startDate = new Date()) => {
   candidate.setHours(0, 0, 0, 0);
 
 
-  /*
-    حداکثر 40 روز کافی است، اما 70 روز گذاشته شده تا
-    تغییر ماه، پایان سال و شرایط خاص هم بدون مشکل پوشش داده شود.
-  */
   for (let offsetDays = 0; offsetDays <= 70; offsetDays += 1) {
     const jalali = getJalaliDate(candidate);
 
@@ -390,10 +379,6 @@ const getNextAllowedSaleDate = (startDate = new Date()) => {
 };
 
 
-/*
-  بررسی می‌کند که آیا امروز واقعاً یکی از روزهای
-  10، 20 یا 30 در تقویم شمسی است یا نه.
-*/
 const isTodayAllowedDay = () => {
   const jalali = getJalaliDate();
 
@@ -401,14 +386,6 @@ const isTodayAllowedDay = () => {
 };
 
 
-/*
-  وضعیت مجاز بودن نماینده برای ثبت اعلام فروش:
-
-  - فقط روزهای 10، 20 و 30 شمسی مجاز است.
-  - در روز مجاز، هر تعداد ثبت فروش مجاز است.
-  - nextAllowedAt با تاریخ واقعی محاسبه می‌شود؛
-    نه با روز/ماه میلادی و نه با فرض 30 روزه بودن ماه شمسی.
-*/
 const getRepresentativeSalesPeriodStatus = (
   representativeId,
 ) => {
@@ -416,11 +393,7 @@ const getRepresentativeSalesPeriodStatus = (
   const jalali = getJalaliDate(now);
   const allowed = ALLOWED_SALE_DAYS.includes(jalali.day);
 
-  /*
-    در روز مجاز، تاریخ بعدی را امروز نگه می‌داریم.
-    در روز غیرمجاز، اولین روز واقعیِ 10/20/30 شمسی بعدی
-    محاسبه می‌شود.
-  */
+
   const nextAllowedSale = getNextAllowedSaleDate(now);
 
   return {
@@ -442,9 +415,6 @@ const getRepresentativeSalesPeriodStatus = (
     periodEnd: now.toISOString(),
 
 
-    /*
-      در روز مجاز null است، چون فروش همین الان مجاز است.
-    */
     nextAllowedAt: allowed
       ? null
       : nextAllowedSale.date.toISOString(),
@@ -454,11 +424,6 @@ const getRepresentativeSalesPeriodStatus = (
     periodEndFa: formatPersianDateTime(now),
 
 
-    /*
-      نمونه خروجی درست:
-      1405/07/10
-      نه یک تاریخ تقریبی میلادی.
-    */
     nextAllowedAtFa: allowed
       ? null
       : nextAllowedSale.jalaliFormatted,
@@ -690,6 +655,7 @@ const requireAdmin = (req, res, next) => {
 
 // =========================
 // Warehouse summary helper
+// 🆕 نسخه به‌روز شده با محاسبه فیلدهای فروش
 // =========================
 
 const updateRepresentativeWarehouseSummary = (
@@ -735,6 +701,75 @@ const updateRepresentativeWarehouseSummary = (
   );
 
 
+  // 🆕 محاسبه فیلدهای فروش از روی salesReports.json
+  const allReports = readSalesReports();
+
+
+  const repReports = allReports.filter((report) => {
+    return sameValue(
+      report.representativeId,
+      representativeId,
+    );
+  });
+
+
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+
+  // 🆕 فروش ۱۰ روز گذشته
+  const last10DaysSales = repReports
+    .filter((report) => {
+      const created = getCreatedAtTime(report.createdAt);
+      return created > 0 && now - created <= 10 * DAY_MS;
+    })
+    .reduce((sum, report) => {
+      return sum + toNumber(report.totalAmount);
+    }, 0);
+
+
+  // 🆕 میانگین فروش ماهانه (میانگین روزانه ۳۰ روز گذشته)
+  const last30DaysReports = repReports.filter((report) => {
+    const created = getCreatedAtTime(report.createdAt);
+    return created > 0 && now - created <= 30 * DAY_MS;
+  });
+
+
+  const last30DaysTotal = last30DaysReports.reduce(
+    (sum, report) => {
+      return sum + toNumber(report.totalAmount);
+    },
+    0,
+  );
+
+
+  const averageSales =
+    last30DaysReports.length > 0
+      ? last30DaysTotal / 30
+      : 0;
+
+
+  // 🆕 تعداد کل اعلام فروش‌های نماینده
+  const salesAnnouncementCount = repReports.length;
+
+
+  // 🆕 آخرین تاریخ اعلام فروش
+  const sortedByDate = repReports
+    .map((report) => report)
+    .sort((first, second) => {
+      return (
+        getCreatedAtTime(second.createdAt) -
+        getCreatedAtTime(first.createdAt)
+      );
+    });
+
+
+  const lastSalesAnnouncementDate =
+    sortedByDate.length > 0 && sortedByDate[0].createdAt
+      ? sortedByDate[0].createdAt
+      : null;
+
+
   representatives[representativeIndex] = {
     ...representatives[representativeIndex],
 
@@ -743,6 +778,18 @@ const updateRepresentativeWarehouseSummary = (
 
 
     storeItemsTotalValue,
+
+
+    last10DaysSales,
+
+
+    averageSales,
+
+
+    salesAnnouncementCount,
+
+
+    lastSalesAnnouncementDate,
 
 
     updatedAt: new Date().toISOString(),
@@ -758,8 +805,6 @@ ensureDataFiles();
 
 // =====================================================
 // GET /api/sales-from-warehouse/sale-schedule
-//
-// وضعیت دقیق فروش با تاریخ شمسی واقعی.
 // =====================================================
 
 router.get(
@@ -917,9 +962,6 @@ router.get(
 
 // =====================================================
 // POST /api/sales-from-warehouse
-//
-// هر نماینده فقط در روزهای 10، 20 و 30 شمسی مجاز است.
-// در روز مجاز، هر تعداد ثبت مجاز است.
 // =====================================================
 
 router.post(
@@ -1333,9 +1375,6 @@ router.post(
         ),
 
 
-        /*
-          تاریخ شمسی عددی دقیق، برای گزارش و جست‌وجوی بعدی.
-        */
         saleDateJalali: salesPeriod.todayJalali,
 
 
@@ -1418,8 +1457,6 @@ router.post(
 
 // =====================================================
 // GET /api/sales-from-warehouse/my
-//
-// تاریخچه فروش نماینده و وضعیت بازه فعلی.
 // =====================================================
 
 router.get(
@@ -1491,8 +1528,6 @@ router.get(
 
 // =====================================================
 // GET /api/sales-from-warehouse/admin/all
-//
-// همه اعلام فروش‌ها برای ادمین.
 // =====================================================
 
 router.get(
@@ -1530,6 +1565,154 @@ router.get(
         error:
           error.message ||
           'خطا در دریافت گزارش فروش‌ها.',
+      });
+    }
+  },
+);
+
+
+// =====================================================
+// 🆕 POST /api/sales-from-warehouse/admin/recalculate
+// محاسبه مجدد فیلدهای فروش برای همه نماینده‌ها
+// (برای نماینده‌های قدیمی که فیلدها رو ندارن)
+// =====================================================
+
+router.post(
+  '/admin/recalculate',
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    try {
+      const representatives = readRepresentatives();
+      const warehouses = readRepresentativeWarehouses();
+
+
+      let updatedCount = 0;
+
+
+      representatives.forEach((rep) => {
+        const repId = rep.id;
+        if (!repId) return;
+
+
+        const warehouse = warehouses.find((w) =>
+          sameValue(w.representativeId, repId),
+        );
+
+
+        const warehouseItems = Array.isArray(warehouse?.items)
+          ? warehouse.items
+          : [];
+
+
+        const storeItemsCount = warehouseItems.reduce(
+          (total, item) => total + toNumber(item.quantity),
+          0,
+        );
+
+
+        const storeItemsTotalValue = warehouseItems.reduce(
+          (total, item) => total + toNumber(item.totalPrice),
+          0,
+        );
+
+
+        const allReports = readSalesReports();
+        const repReports = allReports.filter((r) =>
+          sameValue(r.representativeId, repId),
+        );
+
+
+        const now = Date.now();
+        const DAY_MS = 24 * 60 * 60 * 1000;
+
+
+        const last10DaysSales = repReports
+          .filter((report) => {
+            const created = getCreatedAtTime(report.createdAt);
+            return created > 0 && now - created <= 10 * DAY_MS;
+          })
+          .reduce((sum, report) => sum + toNumber(report.totalAmount), 0);
+
+
+        const last30DaysReports = repReports.filter((report) => {
+          const created = getCreatedAtTime(report.createdAt);
+          return created > 0 && now - created <= 30 * DAY_MS;
+        });
+
+
+        const last30DaysTotal = last30DaysReports.reduce(
+          (sum, report) => sum + toNumber(report.totalAmount),
+          0,
+        );
+
+
+        const averageSales =
+          last30DaysReports.length > 0
+            ? last30DaysTotal / 30
+            : 0;
+
+
+        const salesAnnouncementCount = repReports.length;
+
+
+        const sortedByDate = repReports
+          .slice()
+          .sort((first, second) => {
+            return (
+              getCreatedAtTime(second.createdAt) -
+              getCreatedAtTime(first.createdAt)
+            );
+          });
+
+
+        const lastSalesAnnouncementDate =
+          sortedByDate.length > 0 && sortedByDate[0].createdAt
+            ? sortedByDate[0].createdAt
+            : null;
+
+
+        const repIndex = representatives.findIndex((r) =>
+          sameValue(r.id, repId),
+        );
+
+
+        if (repIndex !== -1) {
+          representatives[repIndex] = {
+            ...representatives[repIndex],
+            storeItemsCount,
+            storeItemsTotalValue,
+            last10DaysSales,
+            averageSales,
+            salesAnnouncementCount,
+            lastSalesAnnouncementDate,
+            updatedAt: new Date().toISOString(),
+          };
+          updatedCount += 1;
+        }
+      });
+
+
+      const saved = writeRepresentatives(representatives);
+
+
+      return res.json({
+        success: saved,
+        message: `محاسبه مجدد برای ${updatedCount} نماینده انجام شد.`,
+        updatedCount,
+      });
+    } catch (error) {
+      console.error(
+        'خطا در محاسبه مجدد فیلدهای فروش:',
+        error,
+      );
+
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error.message ||
+          'خطا در محاسبه مجدد فیلدهای فروش.',
       });
     }
   },

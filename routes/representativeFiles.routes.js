@@ -1,6 +1,8 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+const jwt = require('jsonwebtoken');
 
 const {
   DATA_DIR,
@@ -12,6 +14,10 @@ const {
 } = require('../helpers/values');
 
 const router = express.Router();
+
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  'company-panel-secret-change-this-in-production';
 
 const REPRESENTATIVES_DIR = path.join(
   DATA_DIR,
@@ -40,6 +46,9 @@ const allowedExtensions = [
   'zip',
   'rar',
 ];
+
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
+const MAX_FILES_PER_UPLOAD = 10;
 
 function getFileIcon(fileName) {
   const extension = path.extname(
@@ -140,6 +149,195 @@ function getRepresentativeFilePath(
   return path.join(directory, name);
 }
 
+// ===== Auth middleware (همانند representatives.js) =====
+
+function authenticateToken(req, res, next) {
+  const authorization = String(
+    req.headers.authorization || '',
+  );
+
+  const match = authorization.match(
+    /^Bearer\s+(.+)$/i,
+  );
+
+  if (!match) {
+    return res.status(401).json({
+      success: false,
+      error:
+        'توکن ورود ارسال نشده است. لطفاً دوباره وارد حساب شوید.',
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      match[1].trim(),
+      JWT_SECRET,
+    );
+
+    if (
+      !decoded ||
+      typeof decoded !== 'object'
+    ) {
+      return res.status(401).json({
+        success: false,
+        error: 'توکن ورود نامعتبر است.',
+      });
+    }
+
+    req.user = decoded;
+
+    return next();
+  } catch {
+    return res.status(401).json({
+      success: false,
+      error:
+        'توکن ورود نامعتبر یا منقضی شده است.',
+    });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error:
+        'فقط ادمین اجازه دسترسی به این بخش را دارد.',
+    });
+  }
+
+  return next();
+}
+
+// تابع کمکی برای نمایش اعداد فارسی در پاسخ
+function toPersianNumber(value) {
+  return new Intl.NumberFormat('fa-IR').format(
+    Number(value || 0),
+  );
+}
+
+// ===== Multer config برای آپلود =====
+
+const uploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const representativeId = String(
+      req.params.id || '',
+    ).trim();
+
+    const directory =
+      getRepresentativeDirectory(
+        representativeId,
+      );
+
+    if (!directory) {
+      return cb(
+        new Error(
+          'نماینده یا شمارهٔ پوشهٔ او پیدا نشد.',
+        ),
+      );
+    }
+
+    // ساخت پوشه در صورت عدم وجود
+    fs.mkdirSync(directory, {
+      recursive: true,
+    });
+
+    return cb(null, directory);
+  },
+
+  filename: (req, file, cb) => {
+    // مدیریت encoding نام فایل (برای فارسی/یونیکد)
+    const originalName = Buffer.isBuffer(
+      file.originalname,
+    )
+      ? file.originalname.toString('utf8')
+      : file.originalname;
+
+    let safeName = path.basename(
+      String(originalName || ''),
+    );
+
+    if (!safeName) {
+      safeName = `file-${Date.now()}`;
+    }
+
+    // اگر فایل با همین نام وجود داشت، یک پسوند عددی اضافه کن
+    const representativeId = String(
+      req.params.id || '',
+    ).trim();
+
+    const directory =
+      getRepresentativeDirectory(
+        representativeId,
+      );
+
+    if (
+      directory &&
+      fs.existsSync(
+        path.join(directory, safeName),
+      )
+    ) {
+      const ext = path.extname(safeName);
+      const base = path.basename(safeName, ext);
+      let counter = 1;
+
+      while (
+        fs.existsSync(
+          path.join(
+            directory,
+            `${base}_${counter}${ext}`,
+          ),
+        )
+      ) {
+        counter += 1;
+      }
+
+      safeName = `${base}_${counter}${ext}`;
+    }
+
+    return cb(null, safeName);
+  },
+});
+
+const upload = multer({
+  storage: uploadStorage,
+  limits: {
+    fileSize: MAX_FILE_SIZE,
+    files: MAX_FILES_PER_UPLOAD,
+  },
+  fileFilter: (req, file, cb) => {
+    // نرمال‌سازی نام فایل برای بررسی extension
+    const originalName = Buffer.isBuffer(
+      file.originalname,
+    )
+      ? file.originalname.toString('utf8')
+      : file.originalname;
+
+    const extension = path
+      .extname(String(originalName || ''))
+      .slice(1)
+      .toLowerCase();
+
+    if (
+      allowedExtensions.includes(extension)
+    ) {
+      return cb(null, true);
+    }
+
+    return cb(
+      new Error(
+        `نوع فایل "${file.originalname}" مجاز نیست. فقط: ${allowedExtensions.join(', ')}`,
+      ),
+    );
+  },
+});
+
+// ===== Routes =====
+
+/*
+  GET /api/representatives/:id/files
+
+  دریافت لیست فایل‌های یک نماینده
+*/
 router.get('/:id/files', (req, res) => {
   try {
     const representativeId = String(
@@ -231,6 +429,97 @@ router.get('/:id/files', (req, res) => {
   }
 });
 
+/*
+  POST /api/representatives/:id/files
+
+  آپلود فایل‌های جدید برای یک نماینده (فقط ادمین)
+  فرمت مورد انتظار در فرانت: multipart/form-data
+  فیلد فایل‌ها: files (می‌تواند چندتایی باشد)
+*/
+router.post(
+  '/:id/files',
+  authenticateToken,
+  requireAdmin,
+  upload.array('files', MAX_FILES_PER_UPLOAD),
+  (req, res) => {
+    try {
+      const representativeId = String(
+        req.params.id || '',
+      ).trim();
+
+      const directory =
+        getRepresentativeDirectory(
+          representativeId,
+        );
+
+      if (!directory) {
+        return res.status(404).json({
+          success: false,
+          error:
+            'نماینده یا شمارهٔ پوشهٔ او پیدا نشد.',
+        });
+      }
+
+      const uploadedFiles = Array.isArray(
+        req.files,
+      )
+        ? req.files
+        : [];
+
+      if (uploadedFiles.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'هیچ فایلی برای آپلود ارسال نشده است.',
+        });
+      }
+
+      const files = uploadedFiles.map((file) => {
+        const stats = fs.statSync(file.path);
+
+        return {
+          id: `${representativeId}-${file.filename}`,
+          name: file.filename,
+          size: `${(
+            stats.size / 1024
+          ).toFixed(1)} KB`,
+          uploadedAt: stats.mtime
+            .toLocaleDateString('fa-IR'),
+          representativeId,
+          icon: getFileIcon(file.filename),
+        };
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: `${toPersianNumber(
+          files.length,
+        )} فایل با موفقیت آپلود شد.`,
+        files,
+      });
+    } catch (error) {
+      console.error(
+        'خطا در آپلود فایل‌ها:',
+        error,
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error &&
+          error.message
+            ? error.message
+            : 'خطا در آپلود فایل‌ها.',
+      });
+    }
+  },
+);
+
+/*
+  GET /api/representatives/:repId/files/:fileName/view
+
+  مشاهدهٔ فایل (inline)
+*/
 router.get(
   '/:repId/files/:fileName/view',
   (req, res) => {
@@ -262,6 +551,11 @@ router.get(
   },
 );
 
+/*
+  GET /api/representatives/:repId/files/:fileName/download
+
+  دانلود فایل (attachment)
+*/
 router.get(
   '/:repId/files/:fileName/download',
   (req, res) => {
@@ -296,6 +590,11 @@ router.get(
   },
 );
 
+/*
+  DELETE /api/representatives/:repId/files/:fileName
+
+  حذف یک فایل
+*/
 router.delete(
   '/:repId/files/:fileName',
   (req, res) => {

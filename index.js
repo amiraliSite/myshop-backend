@@ -1,6 +1,8 @@
 require('dotenv').config();
 
 
+
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -10,13 +12,18 @@ const os = require('os');
 const mongoose = require('mongoose');
 
 
+
+
 const {
   DATA_DIR,
   ensureDataFiles,
+  loadAllData,
   readRepresentatives,
   readRepresentativeWarehouses,
   readSalesReports,
 } = require('./helpers/jsonStorage');
+
+
 
 
 const authRouter = require('./routes/auth.routes');
@@ -33,12 +40,19 @@ const supportRequestsRouter = require('./routes/supportRequests');
 const adminSupportRequestsRouter = require('./routes/adminSupportRequests.routes');
 const notesRouter = require('./routes/notes.routes');
 const warrantiesRouter = require('./routes/warranties.routes');
+const migrateRouter = require('./routes/migrate.routes');
+
+
 
 
 const app = express();
 
 
+
+
 const PORT = Number(process.env.PORT) || 5000;
+
+
 
 
 const DEFAULT_LOCAL_DATA_DIR = path.join(
@@ -47,13 +61,19 @@ const DEFAULT_LOCAL_DATA_DIR = path.join(
 );
 
 
+
+
 const STORAGE_DIR =
   DATA_DIR || DEFAULT_LOCAL_DATA_DIR;
+
+
 
 
 const UPLOADS_DIR = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.join(STORAGE_DIR, 'uploads');
+
+
 
 
 const REPRESENTATIVES_FILES_DIR =
@@ -63,6 +83,8 @@ const REPRESENTATIVES_FILES_DIR =
   );
 
 
+
+
 const WARRANTIES_UPLOADS_DIR =
   path.join(
     UPLOADS_DIR,
@@ -70,12 +92,18 @@ const WARRANTIES_UPLOADS_DIR =
   );
 
 
+
+
 ensureDataFiles();
+
+
 
 
 fs.mkdirSync(UPLOADS_DIR, {
   recursive: true,
 });
+
+
 
 
 fs.mkdirSync(
@@ -86,6 +114,8 @@ fs.mkdirSync(
 );
 
 
+
+
 fs.mkdirSync(
   WARRANTIES_UPLOADS_DIR,
   {
@@ -94,16 +124,22 @@ fs.mkdirSync(
 );
 
 
+
+
 console.log(
   '📁 مسیر داده‌ها:',
   STORAGE_DIR,
 );
 
 
+
+
 console.log(
   '📁 مسیر آپلودها:',
   UPLOADS_DIR,
 );
+
+
 
 
 const allowedOrigins = [
@@ -119,10 +155,14 @@ const allowedOrigins = [
   );
 
 
+
+
 console.log(
   '🌐 Allowed CORS origins:',
   allowedOrigins,
 );
+
+
 
 
 const corsOptions = {
@@ -130,6 +170,8 @@ const corsOptions = {
     const normalizedOrigin = origin
       ? origin.trim().replace(/\/+$/, '')
       : '';
+
+
 
 
     if (
@@ -141,10 +183,14 @@ const corsOptions = {
     }
 
 
+
+
     console.error(
       '❌ CORS origin rejected:',
       normalizedOrigin,
     );
+
+
 
 
     callback(
@@ -155,7 +201,11 @@ const corsOptions = {
   },
 
 
+
+
   credentials: true,
+
+
 
 
   methods: [
@@ -168,6 +218,8 @@ const corsOptions = {
   ],
 
 
+
+
   allowedHeaders: [
     'Accept',
     'Content-Type',
@@ -178,26 +230,37 @@ const corsOptions = {
   ],
 
 
+
+
   exposedHeaders: [
     'Content-Length',
     'Content-Disposition',
   ],
 
 
+
+
   optionsSuccessStatus: 204,
+
 
 
   maxAge: 86400,
 };
 
 
+
+
 app.use(cors(corsOptions));
+
+
 
 
 app.options(
   '*',
   cors(corsOptions),
 );
+
+
 
 
 app.use((req, res, next) => {
@@ -207,10 +270,14 @@ app.use((req, res, next) => {
   );
 
 
+
+
   res.setHeader(
     'Pragma',
     'no-cache',
   );
+
+
 
 
   res.setHeader(
@@ -219,14 +286,20 @@ app.use((req, res, next) => {
   );
 
 
+
+
   res.setHeader(
     'Surrogate-Control',
     'no-store',
   );
 
 
+
+
   next();
 });
+
+
 
 
 app.use(
@@ -234,6 +307,8 @@ app.use(
     limit: '10mb',
   }),
 );
+
+
 
 
 app.use(
@@ -244,13 +319,19 @@ app.use(
 );
 
 
+
+
 app.use(cookieParser());
+
+
 
 
 app.use(
   '/uploads',
   express.static(UPLOADS_DIR),
 );
+
+
 
 
 app.get('/api/health', (_req, res) => {
@@ -264,7 +345,11 @@ app.get('/api/health', (_req, res) => {
 });
 
 
+
+
 app.use('/api/auth', authRouter);
+
+
 
 
 app.use(
@@ -273,10 +358,14 @@ app.use(
 );
 
 
+
+
 app.use(
   '/api/representatives',
   representativeFilesRouter,
 );
+
+
 
 
 app.use(
@@ -285,10 +374,14 @@ app.use(
 );
 
 
+
+
 app.use(
   '/api/representatives',
   representativesRouter,
 );
+
+
 
 
 app.use(
@@ -297,10 +390,14 @@ app.use(
 );
 
 
+
+
 app.use(
   '/api/representatives',
   representativeDashboardRouter,
 );
+
+
 
 
 app.use(
@@ -309,10 +406,14 @@ app.use(
 );
 
 
+
+
 app.use(
   '/api/shipments',
   shipmentsRouter,
 );
+
+
 
 
 app.use(
@@ -321,10 +422,14 @@ app.use(
 );
 
 
+
+
 app.use(
   '/api/admin/return-requests',
   adminReturnRequestsRouter,
 );
+
+
 
 
 app.use(
@@ -333,10 +438,14 @@ app.use(
 );
 
 
+
+
 app.use(
   '/api/admin/support-requests',
   adminSupportRequestsRouter,
 );
+
+
 
 
 app.use(
@@ -345,10 +454,22 @@ app.use(
 );
 
 
+
+
 app.use(
   '/api/warranties',
   warrantiesRouter,
 );
+
+
+
+
+app.use(
+  '/api/migrate',
+  migrateRouter,
+);
+
+
 
 
 app.get('/api/sales-reports', (req, res) => {
@@ -360,6 +481,8 @@ app.get('/api/sales-reports', (req, res) => {
 });
 
 
+
+
 app.get('/api/sale-reports', (req, res) => {
   return res.status(200).json({
     success: true,
@@ -367,6 +490,8 @@ app.get('/api/sale-reports', (req, res) => {
     data: [],
   });
 });
+
+
 
 
 app.get('/api/sales', (req, res) => {
@@ -378,6 +503,8 @@ app.get('/api/sales', (req, res) => {
 });
 
 
+
+
 app.get('/api/sales/announcements', (req, res) => {
   return res.status(200).json({
     success: true,
@@ -387,18 +514,26 @@ app.get('/api/sales/announcements', (req, res) => {
 });
 
 
+
+
 app.get('/api/debug/data-files', (_req, res) => {
   try {
     const representatives =
       readRepresentatives();
 
 
+
+
     const warehouses =
       readRepresentativeWarehouses();
 
 
+
+
     const sales =
       readSalesReports();
+
+
 
 
     return res.status(200).json({
@@ -417,9 +552,11 @@ app.get('/api/debug/data-files', (_req, res) => {
     });
   } catch (error) {
     console.error(
-      'خطا در خواندن فایل‌های داده:',
+      'خطا در خواندن داده‌ها:',
       error,
     );
+
+
 
 
     return res.status(500).json({
@@ -432,6 +569,8 @@ app.get('/api/debug/data-files', (_req, res) => {
 });
 
 
+
+
 app.use((req, res) => {
   return res.status(404).json({
     success: false,
@@ -442,12 +581,16 @@ app.use((req, res) => {
 });
 
 
+
+
 app.use(
   (error, _req, res, _next) => {
     console.error(
       '❌ Server error:',
       error,
     );
+
+
 
 
     if (
@@ -459,6 +602,8 @@ app.use(
           'حجم فایل نباید بیشتر از 10 مگابایت باشد.',
       });
     }
+
+
 
 
     if (
@@ -473,6 +618,8 @@ app.use(
     }
 
 
+
+
     if (
       error?.message ===
       'Origin توسط CORS مجاز نیست.'
@@ -484,12 +631,16 @@ app.use(
     }
 
 
+
+
     if (error?.message) {
       return res.status(400).json({
         success: false,
         error: error.message,
       });
     }
+
+
 
 
     return res.status(500).json({
@@ -501,12 +652,18 @@ app.use(
 );
 
 
+
+
 function getLocalIPs() {
   const interfaces =
     os.networkInterfaces();
 
 
+
+
   const ips = [];
+
+
 
 
   for (const interfaceList of Object.values(
@@ -517,9 +674,13 @@ function getLocalIPs() {
     }
 
 
+
+
     for (const network of interfaceList) {
       const address =
         network.address;
+
+
 
 
       const isIPv4 =
@@ -527,10 +688,14 @@ function getLocalIPs() {
         network.family === 4;
 
 
+
+
       const isPrivateNetwork =
         address.startsWith('192.168.') ||
         address.startsWith('10.') ||
         address.startsWith('172.');
+
+
 
 
       if (
@@ -544,89 +709,152 @@ function getLocalIPs() {
   }
 
 
+
+
   return ips;
 }
 
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('✅ اتصال به MongoDB برقرار شد.');
-  })
-  .catch((error) => {
+
+
+const startServer = async () => {
+  try {
+    if (!process.env.MONGODB_URI) {
+      console.error(
+        '❌ متغیر MONGODB_URI تنظیم نشده است.',
+      );
+
+
+
+
+      process.exit(1);
+    }
+
+
+
+
+    await mongoose.connect(
+      process.env.MONGODB_URI,
+    );
+
+
+
+
+    console.log(
+      '✅ اتصال به MongoDB برقرار شد.',
+    );
+
+
+
+
+    await loadAllData();
+  } catch (error) {
     console.error(
       '❌ خطا در اتصال به MongoDB:',
       error.message,
     );
-  });
 
 
-app.listen(
-  PORT,
-  '0.0.0.0',
-  () => {
-    const ips = getLocalIPs();
 
 
-    console.log('');
-    console.log(
-      '🚀 ====================================',
-    );
-    console.log(
-      '✅ Main backend is running!',
-    );
-    console.log(
-      '🚀 ====================================',
-    );
+    process.exit(1);
+  }
 
 
-    console.log(
-      `📍 API: http://localhost:${PORT}/api`,
-    );
 
 
-    console.log(
-      `📍 Health: http://localhost:${PORT}/api/health`,
-    );
+  app.listen(
+    PORT,
+    '0.0.0.0',
+    () => {
+      const ips = getLocalIPs();
 
 
-    console.log(
-      `📦 Products: http://localhost:${PORT}/api/products`,
-    );
 
 
-    console.log(
-      `📁 Data directory: ${STORAGE_DIR}`,
-    );
-
-
-    console.log(
-      `📁 Uploads directory: ${UPLOADS_DIR}`,
-    );
-
-
-    console.log(
-      `🔍 Debug data: http://localhost:${PORT}/api/debug/data-files`,
-    );
-
-
-    if (ips.length > 0) {
+      console.log('');
       console.log(
-        '📱 Network addresses:',
+        '🚀 ====================================',
+      );
+      console.log(
+        '✅ Main backend is running!',
+      );
+      console.log(
+        '🚀 ====================================',
       );
 
 
-      ips.forEach((ip) => {
+
+
+      console.log(
+        `📍 API: http://localhost:${PORT}/api`,
+      );
+
+
+
+
+      console.log(
+        `📍 Health: http://localhost:${PORT}/api/health`,
+      );
+
+
+
+
+      console.log(
+        `📦 Products: http://localhost:${PORT}/api/products`,
+      );
+
+
+
+
+      console.log(
+        `📁 Data directory: ${STORAGE_DIR}`,
+      );
+
+
+
+
+      console.log(
+        `📁 Uploads directory: ${UPLOADS_DIR}`,
+      );
+
+
+
+
+      console.log(
+        `🔍 Debug data: http://localhost:${PORT}/api/debug/data-files`,
+      );
+
+
+
+
+      if (ips.length > 0) {
         console.log(
-          `   http://${ip}:${PORT}/api`,
+          '📱 Network addresses:',
         );
-      });
-    }
 
 
-    console.log(
-      '🚀 ====================================',
-    );
-    console.log('');
-  },
-);
+
+
+        ips.forEach((ip) => {
+          console.log(
+            `   http://${ip}:${PORT}/api`,
+          );
+        });
+      }
+
+
+
+
+      console.log(
+        '🚀 ====================================',
+      );
+      console.log('');
+    },
+  );
+};
+
+
+
+
+startServer();

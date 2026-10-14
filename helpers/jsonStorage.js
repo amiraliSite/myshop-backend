@@ -1,220 +1,196 @@
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
 
-const DATA_DIR = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : path.join(__dirname, '..', 'data');
 
-const FILES = {
-  products: 'products.json',
-  representatives: 'representatives.json',
-  shipments: 'shipments.json',
-  admins: 'admins.json',
-  warehouse: 'warehouse.json',
-  warehouseMovements: 'warehouseMovements.json',
+const models = require('../models');
+
+
+const COLLECTION_MAP = {
+  products: 'Product',
+  representatives: 'Representative',
+  shipments: 'Shipment',
+  admins: 'Admin',
+  warehouse: 'WarehouseItem',
+  warehouseMovements: 'WarehouseMovement',
   representativeWarehouses:
-    'representativeWarehouses.json',
-  returnRequests: 'returnRequests.json',
-  salesReports: 'salesReports.json',
+    'RepresentativeWarehouse',
+  returnRequests: 'ReturnRequest',
+  salesReports: 'SalesReport',
   representativeNotes:
-    'representativeNotes.json',
-  warranties: 'warranties.json',
+    'RepresentativeNote',
+  warranties: 'Warranty',
 };
 
-function ensureDataFiles() {
-  fs.mkdirSync(DATA_DIR, {
-    recursive: true,
-  });
 
-  for (const fileName of Object.values(FILES)) {
-    const filePath = path.join(
-      DATA_DIR,
-      fileName,
+const cache = {};
+
+
+const writeQueues = {};
+
+
+for (const name of Object.keys(
+  COLLECTION_MAP,
+)) {
+  cache[name] = [];
+
+
+  writeQueues[name] =
+    Promise.resolve();
+}
+
+
+const ensureDataFiles = () => true;
+
+
+const getFilePath = (name) => {
+  if (!COLLECTION_MAP[name]) {
+    throw new Error(
+      `کلید داده "${name}" تعریف نشده است.`,
     );
-
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(
-        filePath,
-        '[]\n',
-        {
-          encoding: 'utf8',
-          flag: 'wx',
-        },
-      );
-    }
   }
+
+
+  return name;
+};
+
+
+const loadAllData = async () => {
+  for (const [
+    name,
+    modelName,
+  ] of Object.entries(COLLECTION_MAP)) {
+    const Model = models[modelName];
+
+
+    cache[name] =
+      await Model.find({}).lean();
+
+
+    console.log(
+      `📦 ${name}: ${cache[name].length} رکورد از MongoDB بارگذاری شد.`,
+    );
+  }
+
 
   return true;
-}
+};
 
-function getFilePath(name) {
-  const fileName = FILES[name];
 
-  if (!fileName) {
+const readJson = (name) => {
+  if (!COLLECTION_MAP[name]) {
     throw new Error(
-      `فایل داده "${name}" تعریف نشده است.`,
+      `کلید داده "${name}" تعریف نشده است.`,
     );
   }
 
-  return path.join(DATA_DIR, fileName);
-}
 
-function readJson(name) {
-  ensureDataFiles();
+  return cache[name];
+};
 
-  const filePath = getFilePath(name);
 
-  try {
-    const content = fs.readFileSync(
-      filePath,
-      'utf8',
-    );
+const flush = (name) => {
+  writeQueues[name] =
+    writeQueues[name].then(
+      async () => {
+        const Model =
+          models[
+            COLLECTION_MAP[name]
+          ];
 
-    if (!content.trim()) {
-      return [];
-    }
 
-    const data = JSON.parse(content);
+        await Model.deleteMany({});
 
-    if (!Array.isArray(data)) {
-      throw new Error(
-        `محتوای فایل ${name} آرایه نیست.`,
+
+        if (cache[name].length > 0) {
+          await Model.insertMany(
+            cache[name],
+          );
+        }
+
+
+        console.log(
+          `💾 ${name} در MongoDB ذخیره شد (${cache[name].length} رکورد).`,
+        );
+      },
+    ).catch((error) => {
+      console.error(
+        `❌ خطا در ذخیره ${name} در MongoDB:`,
+        error.message,
       );
-    }
+    });
 
-    return data;
-  } catch (error) {
-    console.error(
-      `❌ خطا در خواندن ${name}:`,
-      error,
-    );
 
-    throw new Error(
-      `فایل ${name} قابل خواندن نیست.`,
-    );
-  }
-}
+  return writeQueues[name];
+};
 
-function writeJson(name, data) {
+
+const writeJson = (name, data) => {
   if (!Array.isArray(data)) {
     throw new Error(
       `داده ${name} باید آرایه باشد.`,
     );
   }
 
-  ensureDataFiles();
 
-  const filePath = getFilePath(name);
-
-  const temporaryPath = path.join(
-    DATA_DIR,
-    `.${FILES[name]}.${process.pid}.${Date.now()}.${Math.random()
-      .toString(36)
-      .slice(2)}.tmp`,
-  );
-
-  const content = `${JSON.stringify(
-    data,
-    null,
-    2,
-  )}\n`;
-
-  try {
-    fs.writeFileSync(
-      temporaryPath,
-      content,
-      {
-        encoding: 'utf8',
-        flag: 'wx',
-      },
+  if (!COLLECTION_MAP[name]) {
+    throw new Error(
+      `کلید داده "${name}" تعریف نشده است.`,
     );
-
-    fs.renameSync(
-      temporaryPath,
-      filePath,
-    );
-
-    const savedContent = fs.readFileSync(
-      filePath,
-      'utf8',
-    );
-
-    const savedData =
-      JSON.parse(savedContent);
-
-    if (!Array.isArray(savedData)) {
-      throw new Error(
-        `داده ذخیره‌شده ${name} آرایه نیست.`,
-      );
-    }
-
-    if (
-      savedData.length !== data.length
-    ) {
-      throw new Error(
-        `تعداد داده‌های ذخیره‌شده ${name} صحیح نیست.`,
-      );
-    }
-
-    console.log(
-      `✅ ${name} ذخیره شد: ${filePath}`,
-    );
-
-    console.log(
-      `📦 تعداد ${name}: ${savedData.length}`,
-    );
-
-    return true;
-  } catch (error) {
-    try {
-      if (fs.existsSync(temporaryPath)) {
-        fs.unlinkSync(temporaryPath);
-      }
-    } catch {
-      // خطای حذف فایل موقت نادیده گرفته می‌شود
-    }
-
-    console.error(
-      `❌ خطا در ذخیره ${name}:`,
-      error,
-    );
-
-    throw error;
   }
-}
+
+
+  cache[name] = data;
+
+
+  flush(name);
+
+
+  return true;
+};
+
 
 const readProducts = () =>
   readJson('products');
 
+
 const writeProducts = (data) =>
   writeJson('products', data);
+
 
 const readRepresentatives = () =>
   readJson('representatives');
 
+
 const writeRepresentatives = (data) =>
   writeJson('representatives', data);
+
 
 const readShipments = () =>
   readJson('shipments');
 
+
 const writeShipments = (data) =>
   writeJson('shipments', data);
+
 
 const readAdmins = () =>
   readJson('admins');
 
+
 const writeAdmins = (data) =>
   writeJson('admins', data);
+
 
 const readWarehouse = () =>
   readJson('warehouse');
 
+
 const writeWarehouse = (data) =>
   writeJson('warehouse', data);
 
+
 const readWarehouseMovements = () =>
   readJson('warehouseMovements');
+
 
 const writeWarehouseMovements = (
   data,
@@ -224,8 +200,10 @@ const writeWarehouseMovements = (
     data,
   );
 
+
 const readRepresentativeWarehouses = () =>
   readJson('representativeWarehouses');
+
 
 const writeRepresentativeWarehouses = (
   data,
@@ -235,30 +213,26 @@ const writeRepresentativeWarehouses = (
     data,
   );
 
+
 const readReturnRequests = () =>
   readJson('returnRequests');
 
-const writeReturnRequests = (
-  data,
-) =>
-  writeJson(
-    'returnRequests',
-    data,
-  );
+
+const writeReturnRequests = (data) =>
+  writeJson('returnRequests', data);
+
 
 const readSalesReports = () =>
   readJson('salesReports');
 
-const writeSalesReports = (
-  data,
-) =>
-  writeJson(
-    'salesReports',
-    data,
-  );
+
+const writeSalesReports = (data) =>
+  writeJson('salesReports', data);
+
 
 const readRepresentativeNotes = () =>
   readJson('representativeNotes');
+
 
 const writeRepresentativeNotes = (
   data,
@@ -268,8 +242,10 @@ const writeRepresentativeNotes = (
     data,
   );
 
+
 const readNotes = () =>
   readJson('representativeNotes');
+
 
 const writeNotes = (data) =>
   writeJson(
@@ -277,60 +253,68 @@ const writeNotes = (data) =>
     data,
   );
 
+
 const readWarranties = () =>
   readJson('warranties');
 
-const writeWarranties = (data) =>
-  writeJson(
-    'warranties',
-    data,
-  );
 
-console.log(
-  '📁 مسیر ذخیره‌سازی:',
-  DATA_DIR,
-);
+const writeWarranties = (data) =>
+  writeJson('warranties', data);
+
 
 module.exports = {
-  DATA_DIR,
-  FILES,
+  COLLECTION_MAP,
+  cache,
   ensureDataFiles,
   getFilePath,
+  loadAllData,
   readJson,
   writeJson,
+
 
   readProducts,
   writeProducts,
 
+
   readRepresentatives,
   writeRepresentatives,
+
 
   readShipments,
   writeShipments,
 
+
   readAdmins,
   writeAdmins,
+
 
   readWarehouse,
   writeWarehouse,
 
+
   readWarehouseMovements,
   writeWarehouseMovements,
+
 
   readRepresentativeWarehouses,
   writeRepresentativeWarehouses,
 
+
   readReturnRequests,
   writeReturnRequests,
+
 
   readSalesReports,
   writeSalesReports,
 
+
   readRepresentativeNotes,
   writeRepresentativeNotes,
 
+
   readNotes,
   writeNotes,
+
 
   readWarranties,
   writeWarranties,

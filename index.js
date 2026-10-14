@@ -3,6 +3,7 @@ require('dotenv').config();
 
 
 
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -10,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const mongoose = require('mongoose');
+
 
 
 
@@ -22,6 +24,7 @@ const {
   readRepresentativeWarehouses,
   readSalesReports,
 } = require('./helpers/jsonStorage');
+
 
 
 
@@ -40,7 +43,7 @@ const supportRequestsRouter = require('./routes/supportRequests');
 const adminSupportRequestsRouter = require('./routes/adminSupportRequests.routes');
 const notesRouter = require('./routes/notes.routes');
 const warrantiesRouter = require('./routes/warranties.routes');
-const migrateRouter = require('./routes/migrate.routes');
+
 
 
 
@@ -50,7 +53,9 @@ const app = express();
 
 
 
+
 const PORT = Number(process.env.PORT) || 5000;
+
 
 
 
@@ -63,8 +68,10 @@ const DEFAULT_LOCAL_DATA_DIR = path.join(
 
 
 
+
 const STORAGE_DIR =
   DATA_DIR || DEFAULT_LOCAL_DATA_DIR;
+
 
 
 
@@ -72,6 +79,7 @@ const STORAGE_DIR =
 const UPLOADS_DIR = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.join(STORAGE_DIR, 'uploads');
+
 
 
 
@@ -85,6 +93,7 @@ const REPRESENTATIVES_FILES_DIR =
 
 
 
+
 const WARRANTIES_UPLOADS_DIR =
   path.join(
     UPLOADS_DIR,
@@ -94,7 +103,9 @@ const WARRANTIES_UPLOADS_DIR =
 
 
 
+
 ensureDataFiles();
+
 
 
 
@@ -102,6 +113,7 @@ ensureDataFiles();
 fs.mkdirSync(UPLOADS_DIR, {
   recursive: true,
 });
+
 
 
 
@@ -116,12 +128,14 @@ fs.mkdirSync(
 
 
 
+
 fs.mkdirSync(
   WARRANTIES_UPLOADS_DIR,
   {
     recursive: true,
   },
 );
+
 
 
 
@@ -134,10 +148,12 @@ console.log(
 
 
 
+
 console.log(
   '📁 مسیر آپلودها:',
   UPLOADS_DIR,
 );
+
 
 
 
@@ -157,10 +173,12 @@ const allowedOrigins = [
 
 
 
+
 console.log(
   '🌐 Allowed CORS origins:',
   allowedOrigins,
 );
+
 
 
 
@@ -170,6 +188,7 @@ const corsOptions = {
     const normalizedOrigin = origin
       ? origin.trim().replace(/\/+$/, '')
       : '';
+
 
 
 
@@ -185,10 +204,12 @@ const corsOptions = {
 
 
 
+
     console.error(
       '❌ CORS origin rejected:',
       normalizedOrigin,
     );
+
 
 
 
@@ -203,7 +224,9 @@ const corsOptions = {
 
 
 
+
   credentials: true,
+
 
 
 
@@ -220,6 +243,7 @@ const corsOptions = {
 
 
 
+
   allowedHeaders: [
     'Accept',
     'Content-Type',
@@ -232,6 +256,7 @@ const corsOptions = {
 
 
 
+
   exposedHeaders: [
     'Content-Length',
     'Content-Disposition',
@@ -240,7 +265,9 @@ const corsOptions = {
 
 
 
+
   optionsSuccessStatus: 204,
+
 
 
 
@@ -250,7 +277,9 @@ const corsOptions = {
 
 
 
+
 app.use(cors(corsOptions));
+
 
 
 
@@ -259,6 +288,7 @@ app.options(
   '*',
   cors(corsOptions),
 );
+
 
 
 
@@ -272,10 +302,12 @@ app.use((req, res, next) => {
 
 
 
+
   res.setHeader(
     'Pragma',
     'no-cache',
   );
+
 
 
 
@@ -288,10 +320,12 @@ app.use((req, res, next) => {
 
 
 
+
   res.setHeader(
     'Surrogate-Control',
     'no-store',
   );
+
 
 
 
@@ -302,11 +336,13 @@ app.use((req, res, next) => {
 
 
 
+
 app.use(
   express.json({
     limit: '10mb',
   }),
 );
+
 
 
 
@@ -321,7 +357,9 @@ app.use(
 
 
 
+
 app.use(cookieParser());
+
 
 
 
@@ -330,6 +368,7 @@ app.use(
   '/uploads',
   express.static(UPLOADS_DIR),
 );
+
 
 
 
@@ -347,7 +386,9 @@ app.get('/api/health', (_req, res) => {
 
 
 
+
 app.use('/api/auth', authRouter);
+
 
 
 
@@ -360,10 +401,12 @@ app.use(
 
 
 
+
 app.use(
   '/api/representatives',
   representativeFilesRouter,
 );
+
 
 
 
@@ -376,10 +419,12 @@ app.use(
 
 
 
+
 app.use(
   '/api/representatives',
   representativesRouter,
 );
+
 
 
 
@@ -392,10 +437,12 @@ app.use(
 
 
 
+
 app.use(
   '/api/representatives',
   representativeDashboardRouter,
 );
+
 
 
 
@@ -408,10 +455,12 @@ app.use(
 
 
 
+
 app.use(
   '/api/shipments',
   shipmentsRouter,
 );
+
 
 
 
@@ -424,10 +473,12 @@ app.use(
 
 
 
+
 app.use(
   '/api/admin/return-requests',
   adminReturnRequestsRouter,
 );
+
 
 
 
@@ -440,10 +491,12 @@ app.use(
 
 
 
+
 app.use(
   '/api/admin/support-requests',
   adminSupportRequestsRouter,
 );
+
 
 
 
@@ -456,18 +509,12 @@ app.use(
 
 
 
+
 app.use(
   '/api/warranties',
   warrantiesRouter,
 );
 
-
-
-
-app.use(
-  '/api/migrate',
-  migrateRouter,
-);
 
 
 
@@ -483,6 +530,7 @@ app.get('/api/sales-reports', (req, res) => {
 
 
 
+
 app.get('/api/sale-reports', (req, res) => {
   return res.status(200).json({
     success: true,
@@ -490,6 +538,7 @@ app.get('/api/sale-reports', (req, res) => {
     data: [],
   });
 });
+
 
 
 
@@ -505,6 +554,7 @@ app.get('/api/sales', (req, res) => {
 
 
 
+
 app.get('/api/sales/announcements', (req, res) => {
   return res.status(200).json({
     success: true,
@@ -512,6 +562,7 @@ app.get('/api/sales/announcements', (req, res) => {
     data: [],
   });
 });
+
 
 
 
@@ -524,14 +575,17 @@ app.get('/api/debug/data-files', (_req, res) => {
 
 
 
+
     const warehouses =
       readRepresentativeWarehouses();
 
 
 
 
+
     const sales =
       readSalesReports();
+
 
 
 
@@ -559,6 +613,7 @@ app.get('/api/debug/data-files', (_req, res) => {
 
 
 
+
     return res.status(500).json({
       success: false,
       error:
@@ -567,6 +622,7 @@ app.get('/api/debug/data-files', (_req, res) => {
     });
   }
 });
+
 
 
 
@@ -583,12 +639,14 @@ app.use((req, res) => {
 
 
 
+
 app.use(
   (error, _req, res, _next) => {
     console.error(
       '❌ Server error:',
       error,
     );
+
 
 
 
@@ -602,6 +660,7 @@ app.use(
           'حجم فایل نباید بیشتر از 10 مگابایت باشد.',
       });
     }
+
 
 
 
@@ -620,6 +679,7 @@ app.use(
 
 
 
+
     if (
       error?.message ===
       'Origin توسط CORS مجاز نیست.'
@@ -633,12 +693,14 @@ app.use(
 
 
 
+
     if (error?.message) {
       return res.status(400).json({
         success: false,
         error: error.message,
       });
     }
+
 
 
 
@@ -654,6 +716,7 @@ app.use(
 
 
 
+
 function getLocalIPs() {
   const interfaces =
     os.networkInterfaces();
@@ -661,7 +724,9 @@ function getLocalIPs() {
 
 
 
+
   const ips = [];
+
 
 
 
@@ -676,9 +741,11 @@ function getLocalIPs() {
 
 
 
+
     for (const network of interfaceList) {
       const address =
         network.address;
+
 
 
 
@@ -690,10 +757,12 @@ function getLocalIPs() {
 
 
 
+
       const isPrivateNetwork =
         address.startsWith('192.168.') ||
         address.startsWith('10.') ||
         address.startsWith('172.');
+
 
 
 
@@ -711,8 +780,10 @@ function getLocalIPs() {
 
 
 
+
   return ips;
 }
+
 
 
 
@@ -727,8 +798,10 @@ const startServer = async () => {
 
 
 
+
       process.exit(1);
     }
+
 
 
 
@@ -740,9 +813,11 @@ const startServer = async () => {
 
 
 
+
     console.log(
       '✅ اتصال به MongoDB برقرار شد.',
     );
+
 
 
 
@@ -757,8 +832,10 @@ const startServer = async () => {
 
 
 
+
     process.exit(1);
   }
+
 
 
 
@@ -768,6 +845,7 @@ const startServer = async () => {
     '0.0.0.0',
     () => {
       const ips = getLocalIPs();
+
 
 
 
@@ -786,9 +864,11 @@ const startServer = async () => {
 
 
 
+
       console.log(
         `📍 API: http://localhost:${PORT}/api`,
       );
+
 
 
 
@@ -800,9 +880,11 @@ const startServer = async () => {
 
 
 
+
       console.log(
         `📦 Products: http://localhost:${PORT}/api/products`,
       );
+
 
 
 
@@ -814,9 +896,11 @@ const startServer = async () => {
 
 
 
+
       console.log(
         `📁 Uploads directory: ${UPLOADS_DIR}`,
       );
+
 
 
 
@@ -828,10 +912,12 @@ const startServer = async () => {
 
 
 
+
       if (ips.length > 0) {
         console.log(
           '📱 Network addresses:',
         );
+
 
 
 
@@ -846,6 +932,7 @@ const startServer = async () => {
 
 
 
+
       console.log(
         '🚀 ====================================',
       );
@@ -853,6 +940,7 @@ const startServer = async () => {
     },
   );
 };
+
 
 
 

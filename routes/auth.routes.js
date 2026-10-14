@@ -2,37 +2,47 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+
 const {
   readAdmins,
   writeAdmins,
   readRepresentatives,
 } = require('../helpers/jsonStorage');
 
+
 const {
   normalizeValue,
   createRandomId,
 } = require('../helpers/values');
 
+
 const router = express.Router();
+
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
   'company-panel-secret-change-this-in-production';
 
+
 const COOKIE_NAME = 'authToken';
+
 
 const COOKIE_MAX_AGE =
   7 * 24 * 60 * 60 * 1000;
 
+
 function cleanText(value, fallback = '') {
   const text = String(value ?? '').trim();
+
 
   return text || fallback;
 }
 
+
 function sameValue(firstValue, secondValue) {
   const first = normalizeValue(firstValue);
   const second = normalizeValue(secondValue);
+
 
   return Boolean(
     first &&
@@ -40,6 +50,7 @@ function sameValue(firstValue, secondValue) {
       first === second,
   );
 }
+
 
 function createToken(user) {
   return jwt.sign(
@@ -60,6 +71,7 @@ function createToken(user) {
   );
 }
 
+
 function setAuthCookie(res, token) {
   return res.cookie(
     COOKIE_NAME,
@@ -74,6 +86,7 @@ function setAuthCookie(res, token) {
   );
 }
 
+
 function clearAuthCookie(res) {
   return res.clearCookie(
     COOKIE_NAME,
@@ -86,8 +99,10 @@ function clearAuthCookie(res) {
   );
 }
 
+
 async function ensureDefaultAdmin() {
   const admins = readAdmins();
+
 
   const adminExists = admins.some(
     (admin) =>
@@ -95,12 +110,15 @@ async function ensureDefaultAdmin() {
       'admin',
   );
 
+
   if (adminExists) {
     return;
   }
 
+
   const passwordHash =
     await bcrypt.hash('admin123', 10);
+
 
   admins.push({
     id: createRandomId(),
@@ -112,7 +130,9 @@ async function ensureDefaultAdmin() {
     updatedAt: new Date().toISOString(),
   });
 
+
   const saved = writeAdmins(admins);
+
 
   if (!saved) {
     throw new Error(
@@ -120,10 +140,12 @@ async function ensureDefaultAdmin() {
     );
   }
 
+
   console.log(
     '✅ ادمین پیش‌فرض ساخته شد | username: admin | password: admin123',
   );
 }
+
 
 router.get('/health', (_req, res) => {
   return res.status(200).json({
@@ -131,6 +153,7 @@ router.get('/health', (_req, res) => {
     message: 'Auth API is running.',
   });
 });
+
 
 router.post(
   '/admin/login',
@@ -140,9 +163,11 @@ router.post(
         req.body?.username,
       );
 
+
       const password = String(
         req.body?.password || '',
       );
+
 
       if (!username || !password) {
         return res.status(400).json({
@@ -152,7 +177,9 @@ router.post(
         });
       }
 
+
       const admins = readAdmins();
+
 
       const admin = admins.find(
         (item) =>
@@ -160,6 +187,7 @@ router.post(
             item.username,
           ) === username,
       );
+
 
       if (!admin) {
         return res.status(401).json({
@@ -169,6 +197,7 @@ router.post(
         });
       }
 
+
       if (!admin.passwordHash) {
         return res.status(500).json({
           success: false,
@@ -177,11 +206,13 @@ router.post(
         });
       }
 
+
       const passwordIsCorrect =
         await bcrypt.compare(
           password,
           admin.passwordHash,
         );
+
 
       if (!passwordIsCorrect) {
         return res.status(401).json({
@@ -191,13 +222,16 @@ router.post(
         });
       }
 
+
       const token = createToken({
         id: admin.id,
         username: admin.username,
         role: 'admin',
       });
 
+
       setAuthCookie(res, token);
+
 
       return res.status(200).json({
         success: true,
@@ -218,6 +252,7 @@ router.post(
         error,
       );
 
+
       return res.status(500).json({
         success: false,
         error: 'خطا در ورود ادمین.',
@@ -225,6 +260,7 @@ router.post(
     }
   },
 );
+
 
 router.post(
   '/representative/login',
@@ -234,9 +270,11 @@ router.post(
         req.body?.name,
       );
 
+
       const code = normalizeValue(
         req.body?.code,
       );
+
 
       if (!name || !code) {
         return res.status(400).json({
@@ -246,8 +284,10 @@ router.post(
         });
       }
 
+
       const representatives =
         readRepresentatives();
+
 
       const representative =
         representatives.find(
@@ -256,6 +296,7 @@ router.post(
             sameValue(item.code, code),
         );
 
+
       if (!representative) {
         return res.status(401).json({
           success: false,
@@ -263,6 +304,7 @@ router.post(
             'نماینده‌ای با این نام و کد نمایندگی پیدا نشد.',
         });
       }
+
 
       if (
         representative.status ===
@@ -275,6 +317,7 @@ router.post(
         });
       }
 
+
       const token = createToken({
         id: representative.id,
         representativeId:
@@ -282,7 +325,9 @@ router.post(
         role: 'representative',
       });
 
+
       setAuthCookie(res, token);
+
 
       return res.status(200).json({
         success: true,
@@ -310,6 +355,7 @@ router.post(
         error,
       );
 
+
       return res.status(500).json({
         success: false,
         error: 'خطا در ورود نماینده.',
@@ -318,8 +364,10 @@ router.post(
   },
 );
 
+
 router.post('/logout', (req, res) => {
   clearAuthCookie(res);
+
 
   return res.status(200).json({
     success: true,
@@ -327,11 +375,5 @@ router.post('/logout', (req, res) => {
   });
 });
 
-ensureDefaultAdmin().catch((error) => {
-  console.error(
-    'خطا در ساخت ادمین پیش‌فرض:',
-    error,
-  );
-});
 
 module.exports = router;

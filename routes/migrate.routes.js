@@ -10,6 +10,7 @@ const models = require('../models');
 
 const {
   COLLECTION_MAP,
+  loadAllData,
 } = require('../helpers/jsonStorage');
 
 
@@ -102,10 +103,13 @@ router.post(
       }
 
 
+      await loadAllData();
+
+
       return res.status(200).json({
         success: true,
         message:
-          'انتقال داده‌ها کامل شد.',
+          'انتقال داده‌ها کامل شد و حافظه به‌روزرسانی شد.',
         results,
       });
     } catch (error) {

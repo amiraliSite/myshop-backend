@@ -1,7 +1,18 @@
 const mongoose = require('mongoose');
 
 
+const fs = require('fs');
+const path = require('path');
+
+
 const models = require('../models');
+
+
+const DATA_DIR = path.join(
+  __dirname,
+  '..',
+  'data',
+);
 
 
 const COLLECTION_MAP = {
@@ -21,10 +32,13 @@ const COLLECTION_MAP = {
 };
 
 
+
 const cache = {};
 
 
+
 const writeQueues = {};
+
 
 
 for (const name of Object.keys(
@@ -33,12 +47,15 @@ for (const name of Object.keys(
   cache[name] = [];
 
 
+
   writeQueues[name] =
     Promise.resolve();
 }
 
 
+
 const ensureDataFiles = () => true;
+
 
 
 const getFilePath = (name) => {
@@ -49,8 +66,10 @@ const getFilePath = (name) => {
   }
 
 
+
   return name;
 };
+
 
 
 const loadAllData = async () => {
@@ -61,8 +80,10 @@ const loadAllData = async () => {
     const Model = models[modelName];
 
 
+
     cache[name] =
       await Model.find({}).lean();
+
 
 
     console.log(
@@ -71,8 +92,10 @@ const loadAllData = async () => {
   }
 
 
+
   return true;
 };
+
 
 
 const readJson = (name) => {
@@ -83,8 +106,10 @@ const readJson = (name) => {
   }
 
 
+
   return cache[name];
 };
+
 
 
 const flush = (name) => {
@@ -97,7 +122,9 @@ const flush = (name) => {
           ];
 
 
+
         await Model.deleteMany({});
+
 
 
         if (cache[name].length > 0) {
@@ -105,6 +132,7 @@ const flush = (name) => {
             cache[name],
           );
         }
+
 
 
         console.log(
@@ -119,8 +147,10 @@ const flush = (name) => {
     });
 
 
+
   return writeQueues[name];
 };
+
 
 
 const writeJson = (name, data) => {
@@ -131,6 +161,7 @@ const writeJson = (name, data) => {
   }
 
 
+
   if (!COLLECTION_MAP[name]) {
     throw new Error(
       `کلید داده "${name}" تعریف نشده است.`,
@@ -138,58 +169,73 @@ const writeJson = (name, data) => {
   }
 
 
+
   cache[name] = data;
 
 
+
   flush(name);
+
 
 
   return true;
 };
 
 
+
 const readProducts = () =>
   readJson('products');
+
 
 
 const writeProducts = (data) =>
   writeJson('products', data);
 
 
+
 const readRepresentatives = () =>
   readJson('representatives');
+
 
 
 const writeRepresentatives = (data) =>
   writeJson('representatives', data);
 
 
+
 const readShipments = () =>
   readJson('shipments');
+
 
 
 const writeShipments = (data) =>
   writeJson('shipments', data);
 
 
+
 const readAdmins = () =>
   readJson('admins');
+
 
 
 const writeAdmins = (data) =>
   writeJson('admins', data);
 
 
+
 const readWarehouse = () =>
   readJson('warehouse');
+
 
 
 const writeWarehouse = (data) =>
   writeJson('warehouse', data);
 
 
+
 const readWarehouseMovements = () =>
   readJson('warehouseMovements');
+
 
 
 const writeWarehouseMovements = (
@@ -201,8 +247,10 @@ const writeWarehouseMovements = (
   );
 
 
+
 const readRepresentativeWarehouses = () =>
   readJson('representativeWarehouses');
+
 
 
 const writeRepresentativeWarehouses = (
@@ -214,24 +262,30 @@ const writeRepresentativeWarehouses = (
   );
 
 
+
 const readReturnRequests = () =>
   readJson('returnRequests');
+
 
 
 const writeReturnRequests = (data) =>
   writeJson('returnRequests', data);
 
 
+
 const readSalesReports = () =>
   readJson('salesReports');
+
 
 
 const writeSalesReports = (data) =>
   writeJson('salesReports', data);
 
 
+
 const readRepresentativeNotes = () =>
   readJson('representativeNotes');
+
 
 
 const writeRepresentativeNotes = (
@@ -243,8 +297,10 @@ const writeRepresentativeNotes = (
   );
 
 
+
 const readNotes = () =>
   readJson('representativeNotes');
+
 
 
 const writeNotes = (data) =>
@@ -254,15 +310,19 @@ const writeNotes = (data) =>
   );
 
 
+
 const readWarranties = () =>
   readJson('warranties');
+
 
 
 const writeWarranties = (data) =>
   writeJson('warranties', data);
 
 
+
 module.exports = {
+  DATA_DIR,
   COLLECTION_MAP,
   cache,
   ensureDataFiles,
@@ -272,48 +332,60 @@ module.exports = {
   writeJson,
 
 
+
   readProducts,
   writeProducts,
+
 
 
   readRepresentatives,
   writeRepresentatives,
 
 
+
   readShipments,
   writeShipments,
+
 
 
   readAdmins,
   writeAdmins,
 
 
+
   readWarehouse,
   writeWarehouse,
+
 
 
   readWarehouseMovements,
   writeWarehouseMovements,
 
 
+
   readRepresentativeWarehouses,
   writeRepresentativeWarehouses,
+
 
 
   readReturnRequests,
   writeReturnRequests,
 
 
+
   readSalesReports,
   writeSalesReports,
+
 
 
   readRepresentativeNotes,
   writeRepresentativeNotes,
 
 
+
   readNotes,
   writeNotes,
+
 
 
   readWarranties,

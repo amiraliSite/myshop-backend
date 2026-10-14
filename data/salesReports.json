@@ -1,1 +1,81 @@
-[]
+[
+  {
+    "id": "1791926527196-a8ku80",
+    "representativeId": "1791883779891-l4nxmyh5",
+    "representativeCode": "1111",
+    "representativeName": "sasa",
+    "representativeCity": "asq",
+    "itemsCount": 1,
+    "totalItems": 1,
+    "totalAmount": 1150000,
+    "saleDate": "۱۴۰۵/۷/۲۲",
+    "saleDateJalali": "1405/07/22",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1791891365153-asvgp1l0",
+        "productName": "لنت ترمز جلو پژو",
+        "quantity": 1,
+        "unitPrice": 1150000,
+        "totalPrice": 1150000
+      }
+    ],
+    "createdAt": "2026-10-13T21:22:07.191Z",
+    "updatedAt": "2026-10-13T21:22:07.191Z"
+  },
+  {
+    "id": "1791925605633-jz49m5",
+    "representativeId": "1791883779891-l4nxmyh5",
+    "representativeCode": "1111",
+    "representativeName": "sasa",
+    "representativeCity": "asq",
+    "itemsCount": 2,
+    "totalItems": 2,
+    "totalAmount": 1679000,
+    "saleDate": "۱۴۰۵/۷/۲۲",
+    "saleDateJalali": "1405/07/22",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1791891365154-mbqtm9lr",
+        "productName": "لنت ترمز جلو پژو",
+        "quantity": 1,
+        "unitPrice": 948750,
+        "totalPrice": 948750
+      },
+      {
+        "productId": "1791891365154-438enpcc",
+        "productName": "لنت ترمز جلو پراید",
+        "quantity": 1,
+        "unitPrice": 730250,
+        "totalPrice": 730250
+      }
+    ],
+    "createdAt": "2026-10-13T21:06:45.628Z",
+    "updatedAt": "2026-10-13T21:06:45.628Z"
+  },
+  {
+    "id": "1791925372195-685xds",
+    "representativeId": "1791883779891-l4nxmyh5",
+    "representativeCode": "1111",
+    "representativeName": "sasa",
+    "representativeCity": "asq",
+    "itemsCount": 1,
+    "totalItems": 2,
+    "totalAmount": 1796300,
+    "saleDate": "۱۴۰۵/۷/۲۲",
+    "saleDateJalali": "1405/07/22",
+    "confirmedSale": true,
+    "items": [
+      {
+        "productId": "1791891365150-hpbv36mo",
+        "productName": "لنت ترمز جلو پراید",
+        "quantity": 2,
+        "unitPrice": 898150,
+        "totalPrice": 1796300
+      }
+    ],
+    "createdAt": "2026-10-13T21:02:52.109Z",
+    "updatedAt": "2026-10-13T21:02:52.109Z"
+  }
+]

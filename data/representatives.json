@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "id": "1791883779891-l4nxmyh5",
+    "name": "sasa",
+    "province": "as",
+    "phone": "q2121",
+    "city": "asq",
+    "code": "1111",
+    "address": "",
+    "description": "",
+    "shopDescription": "",
+    "startDate": "1405/07/21",
+    "depositAmount": "1111111111",
+    "guaranteeCheck": "2222222222",
+    "totalFinancialCommitment": "3333333333",
+    "orders": 0,
+    "shipmentsCount": 0,
+    "storeItemsCount": 11,
+    "storeItemsTotalValue": 11495400,
+    "returnRequestsCount": 0,
+    "last10DaysSales": 3475300,
+    "averageSales": 115843.33333333333,
+    "status": "active",
+    "folderNumber": 1,
+    "createdAt": "2026-10-13T09:29:39.891Z",
+    "updatedAt": "2026-10-14T03:21:27.837Z",
+    "salesAnnouncementCount": 2,
+    "lastSalesAnnouncementDate": "2026-10-13T21:06:45.628Z"
+  }
+]

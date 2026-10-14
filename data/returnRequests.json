@@ -1,1 +1,45 @@
-[]
+[
+  {
+    "id": "1791926619040-eh7jpytk",
+    "representativeId": "1791883779891-l4nxmyh5",
+    "representativeName": "sasa",
+    "representativeCode": "1111",
+    "representativeCity": "asq",
+    "items": [
+      {
+        "id": "1791926619040-x8es28l5",
+        "productId": "1791891365153-34v8sin4",
+        "productName": "لنت ترمز جلو تیبا",
+        "brand": "اصفهان",
+        "category": "لنت ترمز",
+        "quantity": 2,
+        "unitPrice": 1265000,
+        "totalPrice": 2530000
+      }
+    ],
+    "itemsCount": 1,
+    "totalQuantity": 2,
+    "totalPrice": 2530000,
+    "productId": "1791891365153-34v8sin4",
+    "productName": "لنت ترمز جلو تیبا",
+    "brand": "اصفهان",
+    "category": "لنت ترمز",
+    "quantity": 2,
+    "unitPrice": 1265000,
+    "returnDate": "۱۴۰۵/۰۷/۲۲",
+    "reason": "مرجوعی ثبت‌شده و تأییدشده توسط نماینده",
+    "confirmedReturn": true,
+    "status": "registered",
+    "statusHistory": [
+      {
+        "status": "registered",
+        "label": "ثبت شده",
+        "note": "درخواست مرجوعی توسط نماینده ثبت شد.",
+        "changedBy": "representative",
+        "changedAt": "2026-10-13T21:23:39.040Z"
+      }
+    ],
+    "createdAt": "2026-10-13T21:23:39.040Z",
+    "updatedAt": "2026-10-13T21:23:39.040Z"
+  }
+]

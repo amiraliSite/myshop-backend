@@ -403,10 +403,6 @@ router.put('/:id', (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    /*
-     * استان در ویرایش اجباری نیست تا نمایندگان
-     * قدیمی که استان ندارند همچنان قابل ویرایش باشند.
-     */
     if (
       !updated.name ||
       !updated.phone ||
@@ -558,17 +554,40 @@ router.delete('/:id', (req, res) => {
       });
     }
 
+    let folderDeleted = true;
+    let folderError = null;
+
     if (fs.existsSync(folderPath)) {
-      fs.rmSync(folderPath, {
-        recursive: true,
-        force: false,
-      });
+      try {
+        fs.rmSync(folderPath, {
+          recursive: true,
+          force: true,
+          maxRetries: 5,
+          retryDelay: 100,
+        });
+      } catch (deleteError) {
+        folderDeleted = false;
+        folderError = deleteError;
+
+        console.error(
+          'پوشهٔ نماینده حذف نشد، اما نماینده حذف شد:',
+          deleteError,
+        );
+      }
     }
 
     return res.status(200).json({
       success: true,
-      message:
-        'نماینده و پوشهٔ پرونده‌های او حذف شدند.',
+      message: folderDeleted
+        ? 'نماینده و پوشهٔ پرونده‌های او حذف شدند.'
+        : 'نماینده حذف شد، اما حذف پوشهٔ پرونده‌های او با خطای دسترسی ویندوز انجام نشد.',
+      data: {
+        id: representative.id,
+        folderDeleted,
+      },
+      warning: folderDeleted
+        ? undefined
+        : 'پوشهٔ پرونده به‌دلیل قفل‌شدن فایل توسط ویندوز حذف نشد. بعداً می‌توانید آن را دستی حذف کنید.',
     });
   } catch (error) {
     console.error(

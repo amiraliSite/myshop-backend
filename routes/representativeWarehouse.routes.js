@@ -1,8 +1,10 @@
 const express = require('express');
 
+
 const {
   requireAdmin,
 } = require('../middleware/auth.middleware');
+
 
 const {
   readRepresentatives,
@@ -12,17 +14,21 @@ const {
   writeRepresentativeWarehouses,
 } = require('../helpers/jsonStorage');
 
+
 const {
   normalizeValue,
   toEnglishDigits,
   createRandomId,
 } = require('../helpers/values');
 
+
 const router = express.Router();
+
 
 function cleanText(value, fallback = '') {
   return String(value ?? '').trim() || fallback;
 }
+
 
 function toNumber(value, fallback = 0) {
   const text = String(toEnglishDigits(value) ?? '')
@@ -30,11 +36,14 @@ function toNumber(value, fallback = 0) {
     .replace(/[^\d.-]/g, '')
     .trim();
 
+
   if (!text) return fallback;
+
 
   const number = Number(text);
   return Number.isFinite(number) ? number : fallback;
 }
+
 
 function sameValue(first, second) {
   const a = normalizeValue(first);
@@ -42,11 +51,13 @@ function sameValue(first, second) {
   return Boolean(a && b && a === b);
 }
 
+
 function getWarehouseStatus(quantity, minimumStock) {
   if (toNumber(quantity) <= 0) return 'out';
   if (toNumber(quantity) <= toNumber(minimumStock)) return 'low';
   return 'normal';
 }
+
 
 function createEmptyWarehouse(representativeId) {
   return {
@@ -57,6 +68,7 @@ function createEmptyWarehouse(representativeId) {
     updatedAt: new Date().toISOString(),
   };
 }
+
 
 function ensureWarehouseShape(warehouse) {
   const result = warehouse || {};
@@ -70,32 +82,39 @@ function ensureWarehouseShape(warehouse) {
   return result;
 }
 
+
 function findRepresentative(representatives, id) {
   return representatives.find((item) => sameValue(item.id, id));
 }
+
 
 function getOrCreateWarehouse(warehouses, representativeId) {
   let warehouseIndex = warehouses.findIndex((item) =>
     sameValue(item.representativeId, representativeId),
   );
 
+
   if (warehouseIndex < 0) {
     warehouses.push(createEmptyWarehouse(representativeId));
     warehouseIndex = warehouses.length - 1;
   }
 
+
   const warehouse = ensureWarehouseShape(
     warehouses[warehouseIndex],
   );
+
 
   warehouses[warehouseIndex] = warehouse;
   return { warehouseIndex, warehouse };
 }
 
+
 function calculateWarehouseSummary(warehouse) {
   const items = Array.isArray(warehouse?.items)
     ? warehouse.items
     : [];
+
 
   return {
     storeItemsCount: items.reduce(
@@ -112,13 +131,16 @@ function calculateWarehouseSummary(warehouse) {
   };
 }
 
+
 function updateRepresentativeWarehouseSummary(id, warehouse) {
   const representatives = readRepresentatives();
   const index = representatives.findIndex((item) =>
     sameValue(item.id, id),
   );
 
+
   if (index < 0) return false;
+
 
   representatives[index] = {
     ...representatives[index],
@@ -126,8 +148,10 @@ function updateRepresentativeWarehouseSummary(id, warehouse) {
     updatedAt: new Date().toISOString(),
   };
 
+
   return writeRepresentatives(representatives);
 }
+
 
 function getRepresentativeWarehouseBudget(representative) {
   const depositAmount = Math.max(
@@ -135,17 +159,21 @@ function getRepresentativeWarehouseBudget(representative) {
     toNumber(representative?.depositAmount),
   );
 
+
   const guaranteeCheck = Math.max(
     0,
     toNumber(representative?.guaranteeCheck),
   );
+
 
   const totalFinancialCommitment = Math.max(
     0,
     toNumber(representative?.totalFinancialCommitment),
   );
 
+
   const calculatedBudget = depositAmount + guaranteeCheck;
+
 
   return {
     depositAmount,
@@ -159,6 +187,7 @@ function getRepresentativeWarehouseBudget(representative) {
   };
 }
 
+
 function findWarehouseItem(warehouse, row) {
   if (row.productId) {
     const index = warehouse.items.findIndex((item) =>
@@ -167,12 +196,14 @@ function findWarehouseItem(warehouse, row) {
     if (index >= 0) return index;
   }
 
+
   return warehouse.items.findIndex(
     (item) =>
       sameValue(item.productName, row.name) &&
       cleanText(item.brand) === cleanText(row.brand),
   );
 }
+
 
 function sendServerError(res, error, fallback) {
   console.error(fallback, error);
@@ -182,6 +213,7 @@ function sendServerError(res, error, fallback) {
   });
 }
 
+
 router.post(
   '/warehouse/sync-summaries',
   requireAdmin,
@@ -190,11 +222,13 @@ router.post(
       const warehouses = readRepresentativeWarehouses();
       const now = new Date().toISOString();
 
+
       const representatives = readRepresentatives().map(
         (representative) => {
           const warehouse = warehouses.find((item) =>
             sameValue(item.representativeId, representative.id),
           );
+
 
           return {
             ...representative,
@@ -204,9 +238,11 @@ router.post(
         },
       );
 
+
       if (!writeRepresentatives(representatives)) {
         throw new Error('ذخیره خلاصه موجودی ناموفق بود.');
       }
+
 
       return res.json({
         success: true,
@@ -224,12 +260,14 @@ router.post(
   },
 );
 
+
 router.get('/:id/warehouse', (req, res) => {
   try {
     const representative = findRepresentative(
       readRepresentatives(),
       req.params.id,
     );
+
 
     if (!representative) {
       return res.status(404).json({
@@ -238,20 +276,24 @@ router.get('/:id/warehouse', (req, res) => {
       });
     }
 
+
     const warehouses = readRepresentativeWarehouses();
     const { warehouse } = getOrCreateWarehouse(
       warehouses,
       representative.id,
     );
 
+
     if (!writeRepresentativeWarehouses(warehouses)) {
       throw new Error('ذخیره ساختار انبار ناموفق بود.');
     }
+
 
     const summarySaved = updateRepresentativeWarehouseSummary(
       representative.id,
       warehouse,
     );
+
 
     return res.json({
       success: true,
@@ -273,6 +315,117 @@ router.get('/:id/warehouse', (req, res) => {
   }
 });
 
+
+router.post(
+  '/:id/warehouse/update-info',
+  requireAdmin,
+  (req, res) => {
+    try {
+      const representative = findRepresentative(
+        readRepresentatives(),
+        req.params.id,
+      );
+
+
+      if (!representative) {
+        return res.status(404).json({
+          success: false,
+          error: 'نماینده موردنظر پیدا نشد.',
+        });
+      }
+
+
+      const inputItems = req.body?.items;
+
+
+      if (!Array.isArray(inputItems) || !inputItems.length) {
+        return res.status(400).json({
+          success: false,
+          error: 'لیست کالاها ارسال نشده است.',
+        });
+      }
+
+
+      const warehouses = readRepresentativeWarehouses();
+      const { warehouse } = getOrCreateWarehouse(
+        warehouses,
+        representative.id,
+      );
+
+
+      let matchedItems = 0;
+      let updatedBrands = 0;
+      let updatedCategories = 0;
+
+
+      for (const input of inputItems) {
+        const name = cleanText(
+          input.name || input.productName || input.title,
+        );
+
+        const brand = cleanText(input.brand);
+        const category = cleanText(input.category);
+        const unitPrice = toNumber(input.unitPrice);
+
+
+        if (!name) continue;
+
+
+        const item = warehouse.items.find(
+          (item) =>
+            cleanText(item.productName) === name &&
+            (!unitPrice ||
+              toNumber(item.unitPrice) === unitPrice),
+        );
+
+
+        if (!item) continue;
+
+
+        matchedItems += 1;
+
+
+        if (brand && !cleanText(item.brand)) {
+          item.brand = brand;
+          updatedBrands += 1;
+        }
+
+
+        if (category && !cleanText(item.category)) {
+          item.category = category;
+          updatedCategories += 1;
+        }
+      }
+
+
+      warehouse.updatedAt = new Date().toISOString();
+
+
+      if (!writeRepresentativeWarehouses(warehouses)) {
+        throw new Error('ذخیره اطلاعات انبار ناموفق بود.');
+      }
+
+
+      return res.json({
+        success: true,
+        message: 'برند و دسته‌بندی کالاهای موجود بروزرسانی شد.',
+        data: {
+          matchedItems,
+          updatedBrands,
+          updatedCategories,
+        },
+      });
+    } catch (error) {
+      return sendServerError(
+        res,
+        error,
+        'خطا در بروزرسانی اطلاعات کالاها.',
+      );
+    }
+  },
+);
+
+
 router.post(
   '/:id/warehouse/import',
   requireAdmin,
@@ -283,6 +436,7 @@ router.post(
         req.params.id,
       );
 
+
       if (!representative) {
         return res.status(404).json({
           success: false,
@@ -290,9 +444,11 @@ router.post(
         });
       }
 
+
       const inputItems = req.body?.items;
       const requestId = cleanText(req.body?.requestId);
       const fileName = cleanText(req.body?.fileName, 'Excel');
+
 
       if (!requestId) {
         return res.status(400).json({
@@ -301,6 +457,7 @@ router.post(
           error: 'شناسه فایل ارسال نشده است.',
         });
       }
+
 
       if (
         !Array.isArray(inputItems) ||
@@ -314,9 +471,11 @@ router.post(
         });
       }
 
+
       const rows = [];
       const validationErrors = [];
       const rowIndexes = new Set();
+
 
       inputItems.forEach((input, index) => {
         const row = input || {};
@@ -327,7 +486,9 @@ router.post(
         const quantity = toNumber(row.quantity);
         const unitPrice = toNumber(row.unitPrice);
 
+
         let reason = '';
+
 
         if (!name) {
           reason = 'نام کالا خالی است.';
@@ -345,7 +506,9 @@ router.post(
           reason = 'شماره ردیف تکراری است.';
         }
 
+
         rowIndexes.add(String(rowIndex));
+
 
         if (reason) {
           validationErrors.push({
@@ -354,6 +517,7 @@ router.post(
             reason,
           });
         }
+
 
         rows.push({
           rowIndex,
@@ -366,6 +530,7 @@ router.post(
         });
       });
 
+
       if (validationErrors.length) {
         return res.status(400).json({
           success: false,
@@ -375,25 +540,31 @@ router.post(
         });
       }
 
+
       const warehouses = readRepresentativeWarehouses();
       const { warehouse } = getOrCreateWarehouse(
         warehouses,
         representative.id,
       );
 
+
       const previousFile = warehouse.importedFiles.find(
         (item) => item.requestId === requestId,
       );
 
+
       let progressRows;
+
 
       if (previousFile && Array.isArray(previousFile.rows)) {
         progressRows = previousFile.rows;
+
 
         const inputChanged =
           progressRows.length !== rows.length ||
           rows.some((row, index) => {
             const previous = progressRows[index];
+
 
             return (
               String(previous.rowIndex) !== String(row.rowIndex) ||
@@ -405,6 +576,7 @@ router.post(
               previous.unitPrice !== row.unitPrice
             );
           });
+
 
         if (inputChanged) {
           return res.status(409).json({
@@ -424,10 +596,12 @@ router.post(
             ),
         );
 
+
         const recoveredQuantity = legacyMovements.reduce(
           (sum, movement) => sum + toNumber(movement.quantity),
           0,
         );
+
 
         if (
           !legacyMovements.length ||
@@ -441,9 +615,11 @@ router.post(
           });
         }
 
+
         progressRows = rows.map((row) => {
           const expectedDescription =
             `ردیف ${row.rowIndex} از فایل ${fileName}`;
+
 
           const acceptedQuantity = legacyMovements
             .filter(
@@ -458,8 +634,10 @@ router.post(
               0,
             );
 
+
           return { ...row, acceptedQuantity };
         });
+
 
         if (
           progressRows.reduce(
@@ -484,6 +662,7 @@ router.post(
         }));
       }
 
+
       if (
         progressRows.every(
           (row) => row.acceptedQuantity >= row.quantity,
@@ -497,20 +676,25 @@ router.post(
         });
       }
 
+
       const budget = getRepresentativeWarehouseBudget(
         representative,
       );
 
+
       const currentWarehouseValue =
         calculateWarehouseSummary(warehouse).storeItemsTotalValue;
+
 
       let remainingAmount = Math.max(
         0,
         budget.warehouseBudget - currentWarehouseValue,
       );
 
+
       const remainingWarehouseBudget = remainingAmount;
       const now = new Date().toISOString();
+
 
       let importedAmount = 0;
       let acceptedQuantity = 0;
@@ -518,12 +702,15 @@ router.post(
       let createdCount = 0;
       let updatedCount = 0;
 
+
       const rowResults = [];
+
 
       for (const row of progressRows) {
         const previouslyAccepted = row.acceptedQuantity;
         const pendingQuantity =
           row.quantity - previouslyAccepted;
+
 
         if (pendingQuantity <= 0) {
           rowResults.push({
@@ -537,22 +724,27 @@ router.post(
           continue;
         }
 
+
         const availableBeforeRow = remainingAmount;
         const itemIndex = findWarehouseItem(warehouse, row);
         const previousItem =
           itemIndex >= 0 ? warehouse.items[itemIndex] : null;
 
+
         const oldQuantity = previousItem
           ? Math.max(0, toNumber(previousItem.quantity))
           : 0;
+
 
         const oldUnitPrice = previousItem
           ? Math.max(0, toNumber(previousItem.unitPrice))
           : 0;
 
+
         // ارزش موجودی قبلی نیز با قیمت جدید محاسبه می‌شود.
         const repricingChange =
           oldQuantity * (row.unitPrice - oldUnitPrice);
+
 
         const affordableQuantity = Math.max(
           0,
@@ -561,16 +753,20 @@ router.post(
           ),
         );
 
+
         const acceptedNowQuantity = Math.min(
           pendingQuantity,
           affordableQuantity,
         );
 
+
         let reason = '';
+
 
         if (acceptedNowQuantity > 0) {
           const nextQuantity =
             oldQuantity + acceptedNowQuantity;
+
 
           const savedItem = {
             ...(previousItem || {}),
@@ -596,6 +792,7 @@ router.post(
             lastUpdated: now,
           };
 
+
           if (itemIndex >= 0) {
             warehouse.items[itemIndex] = savedItem;
             updatedCount += 1;
@@ -604,14 +801,17 @@ router.post(
             createdCount += 1;
           }
 
+
           const rowAmount =
             acceptedNowQuantity * row.unitPrice;
+
 
           remainingAmount -= rowAmount + repricingChange;
           importedAmount += rowAmount;
           acceptedQuantity += acceptedNowQuantity;
           acceptedRowsCount += 1;
           row.acceptedQuantity += acceptedNowQuantity;
+
 
           warehouse.movements.unshift({
             id: createRandomId(),
@@ -637,8 +837,10 @@ router.post(
           });
         }
 
+
         const pendingAfter =
           row.quantity - row.acceptedQuantity;
+
 
         if (pendingAfter > 0) {
           reason =
@@ -650,6 +852,7 @@ router.post(
         } else {
           reason = 'تعداد باقی‌مانده این ردیف ثبت شد.';
         }
+
 
         rowResults.push({
           ...row,
@@ -669,6 +872,7 @@ router.post(
         });
       }
 
+
       const rejectedItems = rowResults
         .filter((row) => row.remainingQuantity > 0)
         .map((row) => ({
@@ -676,10 +880,12 @@ router.post(
           rejectedQuantity: row.remainingQuantity,
         }));
 
+
       const rejectedQuantity = rejectedItems.reduce(
         (sum, row) => sum + row.remainingQuantity,
         0,
       );
+
 
       const resultData = {
         ...budget,
@@ -701,6 +907,7 @@ router.post(
         summary: calculateWarehouseSummary(warehouse),
       };
 
+
       if (acceptedQuantity === 0) {
         return res.status(400).json({
           success: false,
@@ -710,6 +917,7 @@ router.post(
           data: resultData,
         });
       }
+
 
       const fileRecord = {
         ...(previousFile || {}),
@@ -737,9 +945,11 @@ router.post(
         rows: progressRows,
       };
 
+
       const fileIndex = warehouse.importedFiles.findIndex(
         (item) => item.requestId === requestId,
       );
+
 
       if (fileIndex >= 0) {
         warehouse.importedFiles[fileIndex] = fileRecord;
@@ -747,20 +957,25 @@ router.post(
         warehouse.importedFiles.unshift(fileRecord);
       }
 
+
       warehouse.updatedAt = now;
+
 
       if (!writeRepresentativeWarehouses(warehouses)) {
         throw new Error('ذخیره اطلاعات انبار ناموفق بود.');
       }
+
 
       const summarySaved = updateRepresentativeWarehouseSummary(
         representative.id,
         warehouse,
       );
 
+
       const message = rejectedItems.length
         ? `${acceptedRowsCount} ردیف و ${acceptedQuantity} قطعه ثبت شد؛ ${rejectedQuantity} قطعه به‌دلیل سقف مالی باقی ماند. پس از افزایش سقف، همین فایل را دوباره ارسال کنید.`
         : `${acceptedRowsCount} ردیف و ${acceptedQuantity} قطعه ثبت شد؛ این فایل اکنون به‌طور کامل ثبت شده است.`;
+
 
       return res.status(201).json({
         success: true,
@@ -786,6 +1001,7 @@ router.post(
   },
 );
 
+
 router.post(
   '/:id/warehouse/movements',
   requireAdmin,
@@ -796,12 +1012,14 @@ router.post(
         req.params.id,
       );
 
+
       if (!representative) {
         return res.status(404).json({
           success: false,
           error: 'نماینده موردنظر پیدا نشد.',
         });
       }
+
 
       const body = req.body || {};
       const type = body.type === 'out' ? 'out' : 'in';
@@ -812,6 +1030,7 @@ router.post(
         toNumber(body.minimumStock, 5),
       );
 
+
       if (!productId || quantity <= 0) {
         return res.status(400).json({
           success: false,
@@ -819,9 +1038,11 @@ router.post(
         });
       }
 
+
       const product = readProducts().find((item) =>
         sameValue(item.id, productId),
       );
+
 
       if (!product) {
         return res.status(404).json({
@@ -830,18 +1051,22 @@ router.post(
         });
       }
 
+
       const warehouses = readRepresentativeWarehouses();
       const { warehouse } = getOrCreateWarehouse(
         warehouses,
         representative.id,
       );
 
+
       const index = warehouse.items.findIndex((item) =>
         sameValue(item.productId, productId),
       );
 
+
       const oldItem = index >= 0 ? warehouse.items[index] : null;
       const oldQuantity = toNumber(oldItem?.quantity);
+
 
       if (
         type === 'out' &&
@@ -853,7 +1078,9 @@ router.post(
         });
       }
 
+
       const requestedPrice = toNumber(body.unitPrice);
+
 
       const unitPrice =
         type === 'out'
@@ -862,6 +1089,7 @@ router.post(
             ? requestedPrice
             : toNumber(product.price);
 
+
       if (type === 'in' && unitPrice <= 0) {
         return res.status(400).json({
           success: false,
@@ -869,11 +1097,13 @@ router.post(
         });
       }
 
+
       const now = new Date().toISOString();
       const nextQuantity =
         type === 'in'
           ? oldQuantity + quantity
           : oldQuantity - quantity;
+
 
       const savedItem = {
         ...(oldItem || {}),
@@ -892,16 +1122,19 @@ router.post(
         lastUpdated: now,
       };
 
+
       savedItem.status = getWarehouseStatus(
         nextQuantity,
         savedItem.minimumStock,
       );
+
 
       if (index >= 0) {
         warehouse.items[index] = savedItem;
       } else {
         warehouse.items.push(savedItem);
       }
+
 
       const movement = {
         id: createRandomId(),
@@ -922,17 +1155,21 @@ router.post(
         createdAt: now,
       };
 
+
       warehouse.movements.unshift(movement);
       warehouse.updatedAt = now;
+
 
       if (!writeRepresentativeWarehouses(warehouses)) {
         throw new Error('ذخیره گردش انبار ناموفق بود.');
       }
 
+
       const summarySaved = updateRepresentativeWarehouseSummary(
         representative.id,
         warehouse,
       );
+
 
       return res.status(201).json({
         success: true,
@@ -957,6 +1194,7 @@ router.post(
   },
 );
 
+
 router.delete(
   '/:id/warehouse/items/:itemId',
   requireAdmin,
@@ -967,6 +1205,7 @@ router.delete(
         req.params.id,
       );
 
+
       if (!representative) {
         return res.status(404).json({
           success: false,
@@ -974,15 +1213,18 @@ router.delete(
         });
       }
 
+
       const warehouses = readRepresentativeWarehouses();
       const { warehouse } = getOrCreateWarehouse(
         warehouses,
         representative.id,
       );
 
+
       const index = warehouse.items.findIndex((item) =>
         sameValue(item.id, req.params.itemId),
       );
+
 
       if (index < 0) {
         return res.status(404).json({
@@ -991,7 +1233,9 @@ router.delete(
         });
       }
 
+
       const deletedItem = warehouse.items.splice(index, 1)[0];
+
 
       if (deletedItem.productId) {
         warehouse.movements = warehouse.movements.filter(
@@ -1000,16 +1244,20 @@ router.delete(
         );
       }
 
+
       warehouse.updatedAt = new Date().toISOString();
+
 
       if (!writeRepresentativeWarehouses(warehouses)) {
         throw new Error('ذخیره حذف کالا ناموفق بود.');
       }
 
+
       const summarySaved = updateRepresentativeWarehouseSummary(
         representative.id,
         warehouse,
       );
+
 
       return res.json({
         success: true,
@@ -1026,6 +1274,7 @@ router.delete(
   },
 );
 
+
 router.delete(
   '/:id/warehouse',
   requireAdmin,
@@ -1036,6 +1285,7 @@ router.delete(
         req.params.id,
       );
 
+
       if (!representative) {
         return res.status(404).json({
           success: false,
@@ -1043,28 +1293,34 @@ router.delete(
         });
       }
 
+
       const warehouses = readRepresentativeWarehouses();
       const { warehouse } = getOrCreateWarehouse(
         warehouses,
         representative.id,
       );
 
+
       const deletedItemsCount = warehouse.items.length;
       const deletedMovementsCount = warehouse.movements.length;
+
 
       warehouse.items = [];
       warehouse.movements = [];
       warehouse.importedFiles = [];
       warehouse.updatedAt = new Date().toISOString();
 
+
       if (!writeRepresentativeWarehouses(warehouses)) {
         throw new Error('ذخیره حذف کل موجودی ناموفق بود.');
       }
+
 
       const summarySaved = updateRepresentativeWarehouseSummary(
         representative.id,
         warehouse,
       );
+
 
       return res.json({
         success: true,
@@ -1085,5 +1341,6 @@ router.delete(
     }
   },
 );
+
 
 module.exports = router;

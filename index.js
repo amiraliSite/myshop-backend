@@ -790,50 +790,33 @@ function getLocalIPs() {
 
 const startServer = async () => {
   try {
-    if (!process.env.MONGODB_URI) {
-      console.error(
-        '❌ متغیر MONGODB_URI تنظیم نشده است.',
+    if (process.env.MONGODB_URI) {
+      await mongoose.connect(
+        process.env.MONGODB_URI,
       );
 
+      console.log(
+        '✅ اتصال به MongoDB برقرار شد.',
+      );
 
-
-
-
-      process.exit(1);
+      await loadAllData();
+    } else {
+      console.warn(
+        '⚠️ MONGODB_URI تنظیم نشده است. سرور بدون اتصال به دیتابیس اجرا می‌شود.',
+      );
+      console.warn(
+        '⚠️ برای فعال‌سازی دیتابیس، متغیر MONGODB_URI را در محیط Render تنظیم کنید.',
+      );
     }
-
-
-
-
-
-    await mongoose.connect(
-      process.env.MONGODB_URI,
-    );
-
-
-
-
-
-    console.log(
-      '✅ اتصال به MongoDB برقرار شد.',
-    );
-
-
-
-
-
-    await loadAllData();
   } catch (error) {
     console.error(
       '❌ خطا در اتصال به MongoDB:',
       error.message,
     );
 
-
-
-
-
-    process.exit(1);
+    console.warn(
+      '⚠️ سرور بدون اتصال به MongoDB ادامه می‌دهد، اما قابلیت‌های دیتابیس کار نخواهند کرد.',
+    );
   }
 
 

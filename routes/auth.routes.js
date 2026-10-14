@@ -31,6 +31,10 @@ const COOKIE_MAX_AGE =
   7 * 24 * 60 * 60 * 1000;
 
 
+const isProduction =
+  process.env.NODE_ENV === 'production';
+
+
 function cleanText(value, fallback = '') {
   const text = String(value ?? '').trim();
 
@@ -78,8 +82,10 @@ function setAuthCookie(res, token) {
     token,
     {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction
+        ? 'none'
+        : 'lax',
       path: '/',
       maxAge: COOKIE_MAX_AGE,
     },
@@ -92,8 +98,10 @@ function clearAuthCookie(res) {
     COOKIE_NAME,
     {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction
+        ? 'none'
+        : 'lax',
       path: '/',
     },
   );

@@ -1,0 +1,25 @@
+# Render Configuration
+# این فایل به Render کمک می‌کند سرویس را درست تنظیم کند
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: myshop-backend
+    env: node
+    plan: free
+    region: singapore  # یا frankfurt / oregon - نزدیک‌ترین به کاربرانت
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false  # باید دستی در داشبورد Render وارد کنی
+      - key: FRONTEND_URL
+        value: https://yadakamir.netlify.app
+      - key: PORT
+        value: 5000

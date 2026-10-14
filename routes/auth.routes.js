@@ -100,59 +100,174 @@ function clearAuthCookie(res) {
 }
 
 
-async function ensureDefaultAdmin() {
-  const admins = readAdmins();
-
-
-  const adminExists = admins.some(
-    (admin) =>
-      normalizeValue(admin.username) ===
-      'admin',
-  );
-
-
-  if (adminExists) {
-    return;
-  }
-
-
-  const passwordHash =
-    await bcrypt.hash('admin123', 10);
-
-
-  admins.push({
-    id: createRandomId(),
-    username: 'admin',
-    name: 'مدیر سیستم',
-    passwordHash,
-    role: 'admin',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
-
-
-  const saved = writeAdmins(admins);
-
-
-  if (!saved) {
-    throw new Error(
-      'ذخیره ادمین پیش‌فرض ناموفق بود.',
-    );
-  }
-
-
-  console.log(
-    '✅ ادمین پیش‌فرض ساخته شد | username: admin | password: admin123',
-  );
-}
-
-
 router.get('/health', (_req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Auth API is running.',
   });
 });
+
+
+router.post(
+  '/login',
+  async (req, res) => {
+    try {
+      const username = normalizeValue(
+        req.body?.username ||
+          req.body?.name,
+      );
+
+
+      const password = String(
+        req.body?.password || '',
+      );
+
+
+      const code = normalizeValue(
+        req.body?.code,
+      );
+
+
+      if (!username) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'نام کاربری یا نام نمایندگی الزامی است.',
+        });
+      }
+
+
+      const admins = readAdmins();
+
+
+      const admin = admins.find(
+        (item) =>
+          normalizeValue(
+            item.username,
+          ) === username,
+      );
+
+
+      if (
+        admin &&
+        password &&
+        admin.passwordHash
+      ) {
+        const passwordIsCorrect =
+          await bcrypt.compare(
+            password,
+            admin.passwordHash,
+          );
+
+
+        if (passwordIsCorrect) {
+          const token = createToken({
+            id: admin.id,
+            username: admin.username,
+            role: 'admin',
+          });
+
+
+          setAuthCookie(res, token);
+
+
+          return res.status(200).json({
+            success: true,
+            message:
+              'ورود ادمین با موفقیت انجام شد.',
+            token,
+            user: {
+              id: admin.id,
+              username: admin.username,
+              name:
+                admin.name ||
+                'مدیر سیستم',
+              role: 'admin',
+            },
+          });
+        }
+      }
+
+
+      const representatives =
+        readRepresentatives();
+
+
+      const representative =
+        representatives.find(
+          (item) =>
+            cleanText(item.name) ===
+              username &&
+            sameValue(item.code, code),
+        );
+
+
+      if (representative) {
+        if (
+          representative.status ===
+          'inactive'
+        ) {
+          return res.status(403).json({
+            success: false,
+            error:
+              'حساب این نماینده غیرفعال است.',
+          });
+        }
+
+
+        const token = createToken({
+          id: representative.id,
+          representativeId:
+            representative.id,
+          role: 'representative',
+        });
+
+
+        setAuthCookie(res, token);
+
+
+        return res.status(200).json({
+          success: true,
+          message:
+            'ورود نماینده با موفقیت انجام شد.',
+          token,
+          user: {
+            id: representative.id,
+            representativeId:
+              representative.id,
+            name:
+              representative.name || '',
+            code:
+              representative.code || '',
+            city:
+              representative.city || '',
+            phone:
+              representative.phone || '',
+            role: 'representative',
+          },
+        });
+      }
+
+
+      return res.status(401).json({
+        success: false,
+        error:
+          'نام کاربری، رمز عبور یا کد نمایندگی اشتباه است.',
+      });
+    } catch (error) {
+      console.error(
+        'خطا در ورود:',
+        error,
+      );
+
+
+      return res.status(500).json({
+        success: false,
+        error: 'خطا در ورود.',
+      });
+    }
+  },
+);
 
 
 router.post(

@@ -5,6 +5,11 @@ const jwt = require('jsonwebtoken');
 
 
 const { sendSms } = require('../helpers/sms');
+const {
+  readRepresentatives: readRepresentativesFromMongo,
+  readShipments: readShipmentsFromMongo,
+  writeShipments: writeShipmentsToMongo,
+} = require('../helpers/jsonStorage');
 
 
 const router = express.Router();
@@ -254,16 +259,43 @@ function createRandomId() {
 
 
 function readShipments() {
+  // اول از MongoDB (cache) می‌خونیم - این همیشه up-to-date هست
+  try {
+    const shipments = readShipmentsFromMongo();
+    if (shipments && shipments.length > 0) {
+      return shipments;
+    }
+  } catch (e) {
+    console.error('خطا در خواندن بارها از MongoDB:', e.message);
+  }
+  // fallback به فایل JSON
   return readJsonArray(SHIPMENTS_FILE);
 }
 
 
 function writeShipments(shipments) {
+  // اول به MongoDB می‌نویسیم
+  try {
+    writeShipmentsToMongo(shipments);
+  } catch (e) {
+    console.error('خطا در ذخیره بارها در MongoDB:', e.message);
+  }
+  // بعد به فایل JSON (برای backward compatibility)
   return writeJsonArray(SHIPMENTS_FILE, shipments);
 }
 
 
 function readRepresentatives() {
+  // اول از MongoDB (cache) می‌خونیم - این همیشه up-to-date هست
+  try {
+    const reps = readRepresentativesFromMongo();
+    if (reps && reps.length > 0) {
+      return reps;
+    }
+  } catch (e) {
+    console.error('خطا در خواندن نمایندگان از MongoDB:', e.message);
+  }
+  // fallback به فایل JSON
   return readJsonArray(REPRESENTATIVES_FILE);
 }
 

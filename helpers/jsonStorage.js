@@ -128,8 +128,22 @@ const flush = (name) => {
 
 
         if (cache[name].length > 0) {
+          // اطمینان از اینکه id به‌صورت واقعی ذخیره می‌شود
+          // (Mongoose در حالت عادی id را به‌عنوان virtual در نظر می‌گیرد)
+          const dataToInsert = cache[name].map((item) => {
+            const id =
+              item.id ||
+              String(item._id || new mongoose.Types.ObjectId());
+            const { _id, ...rest } = item;
+            return {
+              ...rest,
+              id: String(id),
+            };
+          });
+
           await Model.insertMany(
-            cache[name],
+            dataToInsert,
+            { rawResult: false },
           );
         }
 

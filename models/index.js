@@ -5,21 +5,50 @@ const baseOptions = {
   timestamps: true,
   strict: false,
   versionKey: false,
+  // اطمینان از اینکه فیلد id به‌صورت واقعی ذخیره می‌شود
+  // (نه به‌عنوان virtual)
+};
+
+
+// اضافه کردن فیلد id به‌صورت واقعی به همه schema ها
+// تا Mongoose آن را حذف نکند
+const createSchema = () => {
+  const schema = new mongoose.Schema({
+    id: {
+      type: String,
+      required: false,
+      default: null,
+    },
+  }, baseOptions);
+  
+  // غیرفعال کردن virtual id تا با فیلد واقعی تداخل نداشته باشد
+  schema.set('toJSON', {
+    virtuals: false,
+    transform: function(doc, ret) {
+      // اطمینان از اینکه id واقعی برمی‌گردد (نه _id به‌عنوان id)
+      if (doc.id) {
+        ret.id = doc.id;
+      }
+      return ret;
+    },
+  });
+  
+  return schema;
 };
 
 
 const schemas = {
-  Product: new mongoose.Schema({}, baseOptions),
-  Representative: new mongoose.Schema({}, baseOptions),
-  Shipment: new mongoose.Schema({}, baseOptions),
-  Admin: new mongoose.Schema({}, baseOptions),
-  WarehouseItem: new mongoose.Schema({}, baseOptions),
-  WarehouseMovement: new mongoose.Schema({}, baseOptions),
-  RepresentativeWarehouse: new mongoose.Schema({}, baseOptions),
-  ReturnRequest: new mongoose.Schema({}, baseOptions),
-  SalesReport: new mongoose.Schema({}, baseOptions),
-  RepresentativeNote: new mongoose.Schema({}, baseOptions),
-  Warranty: new mongoose.Schema({}, baseOptions),
+  Product: createSchema(),
+  Representative: createSchema(),
+  Shipment: createSchema(),
+  Admin: createSchema(),
+  WarehouseItem: createSchema(),
+  WarehouseMovement: createSchema(),
+  RepresentativeWarehouse: createSchema(),
+  ReturnRequest: createSchema(),
+  SalesReport: createSchema(),
+  RepresentativeNote: createSchema(),
+  Warranty: createSchema(),
 };
 
 

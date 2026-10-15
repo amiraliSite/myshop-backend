@@ -624,15 +624,15 @@ router.post('/', requireRole('admin'), (req, res) => {
 
 
     if (!representative) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        error: 'نماینده پیدا نشد.',
+        error: `نماینده با شناسه «${representativeId}» پیدا نشد.`,
       });
     }
 
 
     if (representative.status === 'inactive') {
-      return res.status(409).json({
+      return res.status(400).json({
         success: false,
         error:
           'این نماینده غیرفعال است و نمی‌توان برای او بار ثبت کرد.',
@@ -644,7 +644,7 @@ router.post('/', requireRole('admin'), (req, res) => {
 
 
     if (!receiver) {
-      return res.status(409).json({
+      return res.status(400).json({
         success: false,
         error:
           'نام نماینده کامل نیست؛ ابتدا اطلاعات نماینده را اصلاح کنید.',
@@ -787,7 +787,7 @@ router.patch('/:id/status', requireRole('admin'), async (req, res) => {
     if (index < 0) {
       return res.status(404).json({
         success: false,
-        error: 'بار پیدا نشد.',
+        error: `بار با شناسه «${req.params.id}» پیدا نشد.`,
       });
     }
 
@@ -796,9 +796,12 @@ router.patch('/:id/status', requireRole('admin'), async (req, res) => {
 
 
     if (current.status === nextStatus) {
-      return res.status(409).json({
-        success: false,
-        error: 'بار در حال حاضر همین وضعیت را دارد.',
+      // اگه وضعیت همون باشه، ارور نده - به‌جاش یه پیام موفقیت بده
+      return res.status(200).json({
+        success: true,
+        message: `بار در حال حاضر در وضعیت «${STATUS_LABELS[nextStatus] || nextStatus}» است.`,
+        data: current,
+        sms: { sent: false, message: 'پیامک ارسال نشد (وضعیت تغییر نکرد).' },
       });
     }
 
@@ -921,7 +924,7 @@ router.delete('/:id', requireRole('admin'), (req, res) => {
     if (index < 0) {
       return res.status(404).json({
         success: false,
-        error: 'بار پیدا نشد.',
+        error: `بار با شناسه «${req.params.id}» پیدا نشد.`,
       });
     }
 

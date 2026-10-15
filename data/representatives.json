@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "id": "1792033885049-scnljkaj",
+    "createdAt": "2026-10-15T03:11:25.049Z",
+    "updatedAt": "2026-10-15T03:12:18.933Z",
+    "name": "sxds",
+    "province": "szdcv",
+    "phone": "09145678",
+    "city": "sdcf",
+    "code": "1234",
+    "address": "sds",
+    "description": "sxdcdv",
+    "shopDescription": "scd",
+    "startDate": "1405/07/23",
+    "depositAmount": "122222",
+    "guaranteeCheck": "333333",
+    "totalFinancialCommitment": "455555",
+    "orders": 0,
+    "shipmentsCount": 0,
+    "storeItemsCount": 0,
+    "storeItemsTotalValue": 0,
+    "returnRequestsCount": 0,
+    "last10DaysSales": 0,
+    "averageSales": 0,
+    "status": "active",
+    "folderNumber": 1
+  },
+  {
+    "id": "1792034586209-xr77htfk",
+    "createdAt": "2026-10-15T03:23:06.209Z",
+    "updatedAt": "2026-10-15T03:23:06.209Z",
+    "name": "تست نماینده",
+    "province": "تهران",
+    "phone": "09123456789",
+    "city": "تهران",
+    "code": "9999",
+    "folderNumber": 2,
+    "status": "active"
+  }
+]

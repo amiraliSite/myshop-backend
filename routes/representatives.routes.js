@@ -9,6 +9,18 @@ const {
   writeRepresentatives,
   readRepresentativeNotes,
   writeRepresentativeNotes,
+  readSalesReports,
+  writeSalesReports,
+  readReturnRequests,
+  writeReturnRequests,
+  readRepresentativeWarehouses,
+  writeRepresentativeWarehouses,
+  readShipments,
+  writeShipments,
+  readWarranties,
+  writeWarranties,
+  readWarehouseMovements,
+  writeWarehouseMovements,
 } = require('../helpers/jsonStorage');
 
 const {
@@ -554,6 +566,169 @@ router.delete('/:id', (req, res) => {
       });
     }
 
+    // ===== پاک‌سازی داده‌های مرتبط با نماینده =====
+    const repId = String(representative.id);
+    const cleanupResults = {
+      salesReports: 0,
+      returnRequests: 0,
+      representativeWarehouses: 0,
+      shipments: 0,
+      warranties: 0,
+      warehouseMovements: 0,
+      representativeNotes: 0,
+    };
+
+    try {
+      // ۱. حذف گزارش‌های فروش نماینده
+      const salesReports = readSalesReports();
+      const remainingSalesReports = salesReports.filter(
+        (item) =>
+          !sameId(
+            item.representativeId,
+            repId,
+          ) && !sameId(item.id, repId),
+      );
+      cleanupResults.salesReports =
+        salesReports.length -
+        remainingSalesReports.length;
+      writeSalesReports(remainingSalesReports);
+    } catch (cleanupError) {
+      console.error(
+        'خطا در پاک‌سازی گزارش‌های فروش نماینده:',
+        cleanupError.message,
+      );
+    }
+
+    try {
+      // ۲. حذف درخواست‌های مرجوعی نماینده
+      const returnRequests = readReturnRequests();
+      const remainingReturnRequests = returnRequests.filter(
+        (item) =>
+          !sameId(
+            item.representativeId,
+            repId,
+          ) && !sameId(item.id, repId),
+      );
+      cleanupResults.returnRequests =
+        returnRequests.length -
+        remainingReturnRequests.length;
+      writeReturnRequests(remainingReturnRequests);
+    } catch (cleanupError) {
+      console.error(
+        'خطا در پاک‌سازی درخواست‌های مرجوعی:',
+        cleanupError.message,
+      );
+    }
+
+    try {
+      // ۳. حذف انبار نماینده
+      const repWarehouses = readRepresentativeWarehouses();
+      const remainingRepWarehouses = repWarehouses.filter(
+        (item) =>
+          !sameId(
+            item.representativeId,
+            repId,
+          ) && !sameId(item.id, repId),
+      );
+      cleanupResults.representativeWarehouses =
+        repWarehouses.length -
+        remainingRepWarehouses.length;
+      writeRepresentativeWarehouses(
+        remainingRepWarehouses,
+      );
+    } catch (cleanupError) {
+      console.error(
+        'خطا در پاک‌سازی انبار نماینده:',
+        cleanupError.message,
+      );
+    }
+
+    try {
+      // ۴. حذف محموله‌های نماینده
+      const shipments = readShipments();
+      const remainingShipments = shipments.filter(
+        (item) =>
+          !sameId(
+            item.representativeId,
+            repId,
+          ) && !sameId(item.id, repId),
+      );
+      cleanupResults.shipments =
+        shipments.length - remainingShipments.length;
+      writeShipments(remainingShipments);
+    } catch (cleanupError) {
+      console.error(
+        'خطا در پاک‌سازی محموله‌ها:',
+        cleanupError.message,
+      );
+    }
+
+    try {
+      // ۵. حذف گارانتی‌های نماینده
+      const warranties = readWarranties();
+      const remainingWarranties = warranties.filter(
+        (item) =>
+          !sameId(
+            item.representativeId,
+            repId,
+          ) && !sameId(item.id, repId),
+      );
+      cleanupResults.warranties =
+        warranties.length - remainingWarranties.length;
+      writeWarranties(remainingWarranties);
+    } catch (cleanupError) {
+      console.error(
+        'خطا در پاک‌سازی گارانتی‌ها:',
+        cleanupError.message,
+      );
+    }
+
+    try {
+      // ۶. حذف حرکت‌های انبار نماینده
+      const warehouseMovements = readWarehouseMovements();
+      const remainingMovements = warehouseMovements.filter(
+        (item) =>
+          !sameId(
+            item.representativeId,
+            repId,
+          ) && !sameId(item.id, repId),
+      );
+      cleanupResults.warehouseMovements =
+        warehouseMovements.length -
+        remainingMovements.length;
+      writeWarehouseMovements(remainingMovements);
+    } catch (cleanupError) {
+      console.error(
+        'خطا در پاک‌سازی حرکت‌های انبار:',
+        cleanupError.message,
+      );
+    }
+
+    try {
+      // ۷. حذف یادداشت‌های نماینده
+      const repNotes = readRepresentativeNotes();
+      const remainingNotes = repNotes.filter(
+        (item) =>
+          !sameId(
+            item.representativeId,
+            repId,
+          ),
+      );
+      cleanupResults.representativeNotes =
+        repNotes.length - remainingNotes.length;
+      writeRepresentativeNotes(remainingNotes);
+    } catch (cleanupError) {
+      console.error(
+        'خطا در پاک‌سازی یادداشت‌ها:',
+        cleanupError.message,
+      );
+    }
+
+    console.log(
+      '🧹 پاک‌سازی داده‌های مرتبط با نماینده:',
+      cleanupResults,
+    );
+
     let folderDeleted = true;
     let folderError = null;
 
@@ -584,6 +759,7 @@ router.delete('/:id', (req, res) => {
       data: {
         id: representative.id,
         folderDeleted,
+        cleanup: cleanupResults,
       },
       warning: folderDeleted
         ? undefined

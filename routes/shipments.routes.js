@@ -560,7 +560,9 @@ router.get('/', requireRole('admin'), (_req, res) => {
  */
 router.post('/', requireRole('admin'), (req, res) => {
   try {
-    const warehouse = cleanText(req.body?.warehouse);
+    const warehouse =
+      cleanText(req.body?.warehouse) ||
+      'انبار مرکزی';
 
 
     const representativeId = normalizeDigits(
@@ -571,14 +573,6 @@ router.post('/', requireRole('admin'), (req, res) => {
     const excelFileName = cleanText(req.body?.excelFileName);
 
 
-    if (!warehouse) {
-      return res.status(400).json({
-        success: false,
-        error: 'نام انبار الزامی است.',
-      });
-    }
-
-
     if (!representativeId) {
       return res.status(400).json({
         success: false,
@@ -587,19 +581,33 @@ router.post('/', requireRole('admin'), (req, res) => {
     }
 
 
-    if (!/\.(xlsx|xls)$/i.test(excelFileName)) {
-      return res.status(400).json({
-        success: false,
-        error: 'نام فایل اکسل معتبر نیست.',
-      });
-    }
+    // اگه فایل اکسل وجود نداشت، یه نام پیش‌فرض می‌ذاریم
+    // تا ثبت بار بدون اکسل هم ممکن باشه
+    const finalExcelFileName =
+      excelFileName ||
+      `manual-${Date.now()}.xlsx`;
 
 
     if (
       !Array.isArray(req.body?.items) ||
-      req.body.items.length === 0 ||
-      req.body.items.length > MAX_ITEMS
+      req.body.items.length === 0
     ) {
+      // اگه آیتم‌ها وجود نداشت، یه آیتم پیش‌فرض می‌سازیم
+      // تا کاربر بتونه بدون اکسل هم بار ثبت کنه
+      req.body.items = [
+        {
+          productName: 'بار دستی',
+          brand: '',
+          category: '',
+          quantity: 1,
+          unitPrice: 0,
+          rowIndex: 1,
+        },
+      ];
+    }
+
+
+    if (req.body.items.length > MAX_ITEMS) {
       return res.status(400).json({
         success: false,
         error: 'فایل باید بین ۱ تا ۵۰۰۰ ردیف کالا داشته باشد.',
@@ -706,7 +714,7 @@ router.post('/', requireRole('admin'), (req, res) => {
       receiver,
       warehouse,
       shipmentDate,
-      excelFileName,
+      excelFileName: finalExcelFileName,
       items,
       itemsCount: items.length,
       totalItems,

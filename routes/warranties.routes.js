@@ -257,23 +257,21 @@ const sendWarrantyApprovedSms = async ({
     process.env.PAYAMITO_PASSWORD,
   );
 
-  const bodyId = Number(
-    process.env.PAYAMITO_WARRANTY_PATTERN_ID ||
-      process.env.PAYAMITO_BODY_ID ||
-      547695,
+  const sender = normalizeText(
+    process.env.PAYAMITO_SENDER || '30005050505000',
   );
 
-  if (!username || !password || !bodyId) {
+  if (!username || !password) {
     console.log(
-      '⏸️ پیامک گارانتی ارسال نشد: تنظیمات پیامیتو یا کد پترن کامل نیست.',
-      { username: !!username, password: !!password, bodyId },
+      '⏸️ پیامک گارانتی ارسال نشد: تنظیمات پیامیتو کامل نیست.',
+      { username: !!username, password: !!password },
     );
 
     return {
       success: false,
       skipped: true,
       reason:
-        'تنظیمات پیامیتو یا کد پترن گارانتی کامل نیست.',
+        'تنظیمات پیامیتو کامل نیست.',
     };
   }
 
@@ -292,65 +290,119 @@ const sendWarrantyApprovedSms = async ({
     };
   }
 
-  const text = [
-    normalizeText(customerName) || 'مشتری گرامی',
-    normalizeText(productName) || 'کالا',
-    getWarrantySmsDate(approvedAt),
-    normalizeText(trackingCode),
-  ].join(';');
+  // تبدیل شماره به فرمت 98 برای ارسال
+  const normalizedTo = `98${to.replace(/^0/, '')}`;
+
+  // ساخت متن کامل پیامک گارانتی
+  const dateStr = getWarrantySmsDate(approvedAt);
+  const safeName = normalizeText(customerName) || 'مشتری گرامی';
+  const safeProduct = normalizeText(productName) || 'کالا';
+  const safeCode = normalizeText(trackingCode) || '—';
+
+  const message = `${safeName} عزیز، درخواست گارانتی کالای «${safeProduct}» در تاریخ ${dateStr} تأیید شد. کد پیگیری شما: ${safeCode}\nامانت خدمات پس از فروش`;
+
+  console.log('📱 ارسال پیامک گارانتی (ساده):', {
+    to: normalizedTo,
+    message,
+  });
 
   try {
+    // استفاده از SOAP API (SendSms) به‌جای پترن
+    // این روش پیامک رو با متن کامل می‌فرسته
+    const soapUrl = 'https://api.payamak-panel.com/post/send.asmx';
+
+    const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <SendSms xmlns="http://tempuri.org/">
+      <username>${username}</username>
+      <password>${password}</password>
+      <from>${sender}</from>
+      <to>${normalizedTo}</to>
+      <text>${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
+      <isFlash>false</isFlash>
+      <udh>0</udh>
+      <recId>0</recId>
+      <status>0</status>
+    </SendSms>
+  </soap:Body>
+</soap:Envelope>`;
+
     const response = await fetch(
-      PAYAMITO_PATTERN_URL,
+      soapUrl,
       {
         method: 'POST',
 
         headers: {
-          'Content-Type':
-            'application/json; charset=utf-8',
+          'Content-Type': 'text/xml; charset=utf-8',
+          SOAPAction: 'http://tempuri.org/SendSms',
         },
 
-        body: JSON.stringify({
-          username,
-          password,
-          text,
-          to,
-          bodyId,
-        }),
+        body: xmlBody,
       },
     );
 
-    let result = null;
+    const responseText = await response.text();
 
-    try {
-      result = await response.json();
-    } catch (_error) {
-      result = await response.text();
-    }
+    console.log('📥 پاسخ پیامیتو:', responseText);
 
-    if (!response.ok) {
-      console.error(
-        '❌ خطای HTTP در ارسال پیامک گارانتی:',
-        result,
-      );
+    // استخراج کد از پاسخ SOAP
+    const match = responseText.match(
+      /<SendSmsResult[^>]*>([^<]+)<\/SendSmsResult>/,
+    );
 
+    if (!match) {
       return {
         success: false,
         skipped: false,
-        reason: getSmsErrorMessage(result),
-        result,
+        reason: 'پاسخ نامعتبر از سامانه پیامک',
+        result: responseText,
       };
     }
 
-    console.log(
-      '✅ نتیجه ارسال پیامک گارانتی:',
-      result,
-    );
+    const codeStr = match[1].trim();
+
+    // استفاده از BigInt برای اعداد بزرگ
+    let code;
+    try {
+      code = BigInt(codeStr);
+    } catch {
+      code = 0n;
+    }
+
+    if (code > 0n) {
+      console.log('✅ پیامک گارانتی ارسال شد. ID:', codeStr);
+
+      return {
+        success: true,
+        skipped: false,
+        result: { messageId: codeStr },
+      };
+    }
+
+    // خطاهای پیامیتو
+    const errorCodes = {
+      '-1': 'نام کاربری یا رمز عبور اشتباه است',
+      '-2': 'اعتبار کافی نیست',
+      '-3': 'خط فرستنده نامعتبر',
+      '-4': 'محدودیت روزانه',
+      '-5': 'شماره گیرنده نامعتبر',
+      '-6': 'شماره در فیلتر شما نیست',
+      '-110': 'نام کاربری یا رمز عبور اشتباه',
+      '-120': 'اعتبار کافی نیست',
+      '-130': 'شماره فرستنده نامعتبر',
+    };
+
+    const errorMessage =
+      errorCodes[codeStr] || `کد خطای پیامک: ${codeStr}`;
+
+    console.log('❌ خطای پیامک گارانتی:', errorMessage);
 
     return {
-      success: true,
+      success: false,
       skipped: false,
-      result,
+      reason: errorMessage,
+      result: responseText,
     };
   } catch (error) {
     console.error(

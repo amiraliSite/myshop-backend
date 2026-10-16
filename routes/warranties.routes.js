@@ -258,12 +258,15 @@ const sendWarrantyApprovedSms = async ({
   );
 
   const bodyId = Number(
-    process.env.PAYAMITO_WARRANTY_PATTERN_ID || 0,
+    process.env.PAYAMITO_WARRANTY_PATTERN_ID ||
+      process.env.PAYAMITO_BODY_ID ||
+      547695,
   );
 
   if (!username || !password || !bodyId) {
     console.log(
       '⏸️ پیامک گارانتی ارسال نشد: تنظیمات پیامیتو یا کد پترن کامل نیست.',
+      { username: !!username, password: !!password, bodyId },
     );
 
     return {
@@ -366,22 +369,9 @@ const sendWarrantyApprovedSms = async ({
   }
 };
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, callback) => {
-    callback(null, WARRANTIES_UPLOAD_DIR);
-  },
-
-  filename: (_req, file, callback) => {
-    const extension =
-      path.extname(file.originalname).toLowerCase() ||
-      '.jpg';
-
-    callback(
-      null,
-      `${createId('warranty-image')}${extension}`,
-    );
-  },
-});
+// استفاده از memoryStorage برای اینکه عکس‌ها توی حافظه بمونن
+// و بعد به‌صورت base64 توی دیتابیس ذخیره بشن (مشکل پاک شدن فایل‌ها روی Render حل میشه)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -395,21 +385,55 @@ const upload = multer({
   },
 });
 
-const removeUploadedFile = (file) => {
-  if (!file?.path) {
-    return;
+// تابع کمکی برای تبدیل buffer به base64 data URL
+const formatImageAsBase64 = (file) => {
+  if (!file || !file.buffer) {
+    return '';
   }
 
+  const mimeType =
+    file.mimetype || 'image/jpeg';
+
+  const base64 = file.buffer.toString(
+    'base64',
+  );
+
+  return `data:${mimeType};base64,${base64}`;
+};
+
+// تابع کمکی برای ذخیره عکس روی دیسک (به‌عنوان fallback)
+const saveImageToDisk = (file) => {
   try {
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
+    if (!file || !file.buffer) {
+      return '';
     }
+
+    const extension =
+      path.extname(file.originalname).toLowerCase() ||
+      '.jpg';
+
+    const filename = `${createId('warranty-image')}${extension}`;
+    const filePath = path.join(
+      WARRANTIES_UPLOAD_DIR,
+      filename,
+    );
+
+    fs.writeFileSync(filePath, file.buffer);
+
+    return `/uploads/warranties/${filename}`;
   } catch (error) {
     console.error(
-      'خطا در حذف فایل آپلودشده:',
+      'خطا در ذخیره عکس روی دیسک:',
       error,
     );
+
+    return '';
   }
+};
+
+const removeUploadedFile = (file) => {
+  // با memoryStorage دیگر فایلی روی دیسک نیست که حذف کنیم
+  return;
 };
 
 router.get(
@@ -677,7 +701,11 @@ router.post(
         quantity,
         issueDescription,
 
-        image: `/uploads/warranties/${req.file.filename}`,
+        // ذخیره عکس به‌صورت base64 برای جلوگیری از پاک شدن روی Render
+        image: req.file
+          ? formatImageAsBase64(req.file) ||
+            saveImageToDisk(req.file)
+          : '',
 
         requestDate: now,
         status: 'pending',

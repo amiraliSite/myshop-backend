@@ -257,14 +257,17 @@ const sendWarrantyApprovedSms = async ({
     process.env.PAYAMITO_PASSWORD,
   );
 
-  const sender = normalizeText(
-    process.env.PAYAMITO_SENDER || '30005050505000',
+  // پترن گارانتی (الگوی 549523)
+  // الگو: {0} عزیز، درخواست گارانتی محصول {1} در تاریخ {2} تأیید شد.
+  //        کد پیگیری شما {3} میباشد. سامانه خدمات پس از فروش پیامیتو payamito.com
+  const bodyId = Number(
+    process.env.PAYAMITO_WARRANTY_PATTERN_ID || 549523,
   );
 
-  if (!username || !password) {
+  if (!username || !password || !bodyId) {
     console.log(
       '⏸️ پیامک گارانتی ارسال نشد: تنظیمات پیامیتو کامل نیست.',
-      { username: !!username, password: !!password },
+      { username: !!username, password: !!password, bodyId },
     );
 
     return {
@@ -293,41 +296,58 @@ const sendWarrantyApprovedSms = async ({
   // تبدیل شماره به فرمت 98 برای ارسال
   const normalizedTo = `98${to.replace(/^0/, '')}`;
 
-  // ساخت متن کامل پیامک گارانتی
-  const dateStr = getWarrantySmsDate(approvedAt);
+  // ساخت پارامترهای الگو به ترتیب
+  // {0} = نام مشتری
+  // {1} = نام محصول
+  // {2} = تاریخ تأیید
+  // {3} = کد پیگیری
   const safeName = normalizeText(customerName) || 'مشتری گرامی';
   const safeProduct = normalizeText(productName) || 'کالا';
+  const dateStr = getWarrantySmsDate(approvedAt);
   const safeCode = normalizeText(trackingCode) || '—';
 
-  const message = `${safeName} عزیز، درخواست گارانتی کالای «${safeProduct}» در تاریخ ${dateStr} تأیید شد. کد پیگیری شما: ${safeCode}\nامانت خدمات پس از فروش`;
+  // استفاده از SendByBaseNumber (پترن) - SOAP API
+  const soapUrl = 'https://api.payamak-panel.com/post/send.asmx';
 
-  console.log('📱 ارسال پیامک گارانتی (ساده):', {
-    to: normalizedTo,
-    message,
-  });
+  // ساخت XML برای SendByBaseNumber
+  // textArgs باید به‌صورت <string>...</string> باشه
+  const textItemsXml = [
+    safeName,
+    safeProduct,
+    dateStr,
+    safeCode,
+  ]
+    .map(
+      (arg) =>
+        `<string>${String(arg)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')}</string>`,
+    )
+    .join('');
 
-  try {
-    // استفاده از SOAP API (SendSms) به‌جای پترن
-    // این روش پیامک رو با متن کامل می‌فرسته
-    const soapUrl = 'https://api.payamak-panel.com/post/send.asmx';
-
-    const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
+  const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Body>
-    <SendSms xmlns="http://tempuri.org/">
+    <SendByBaseNumber xmlns="http://tempuri.org/">
       <username>${username}</username>
       <password>${password}</password>
-      <from>${sender}</from>
+      <text>
+        ${textItemsXml}
+      </text>
       <to>${normalizedTo}</to>
-      <text>${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
-      <isFlash>false</isFlash>
-      <udh>0</udh>
-      <recId>0</recId>
-      <status>0</status>
-    </SendSms>
+      <bodyId>${bodyId}</bodyId>
+    </SendByBaseNumber>
   </soap:Body>
 </soap:Envelope>`;
 
+  console.log('📱 ارسال پیامک گارانتی با پترن 549523:', {
+    to: normalizedTo,
+    bodyId,
+    args: { safeName, safeProduct, dateStr, safeCode },
+  });
+
+  try {
     const response = await fetch(
       soapUrl,
       {
@@ -335,7 +355,7 @@ const sendWarrantyApprovedSms = async ({
 
         headers: {
           'Content-Type': 'text/xml; charset=utf-8',
-          SOAPAction: 'http://tempuri.org/SendSms',
+          SOAPAction: 'http://tempuri.org/SendByBaseNumber',
         },
 
         body: xmlBody,
@@ -348,7 +368,7 @@ const sendWarrantyApprovedSms = async ({
 
     // استخراج کد از پاسخ SOAP
     const match = responseText.match(
-      /<SendSmsResult[^>]*>([^<]+)<\/SendSmsResult>/,
+      /<SendByBaseNumberResult[^>]*>([^<]+)<\/SendByBaseNumberResult>/,
     );
 
     if (!match) {
@@ -380,7 +400,7 @@ const sendWarrantyApprovedSms = async ({
       };
     }
 
-    // خطاهای پیامیتو
+    // خطاهای پیامیتو (کدهای منفی)
     const errorCodes = {
       '-1': 'نام کاربری یا رمز عبور اشتباه است',
       '-2': 'اعتبار کافی نیست',
@@ -388,6 +408,20 @@ const sendWarrantyApprovedSms = async ({
       '-4': 'محدودیت روزانه',
       '-5': 'شماره گیرنده نامعتبر',
       '-6': 'شماره در فیلتر شما نیست',
+      '-7': 'الگوی نامعتبر (bodyId اشتباه)',
+      '-8': 'متن خیلی طولانی است',
+      '-9': 'سرویس در حال بروزرسانی',
+      '-10': 'شماره در لیست سیاه',
+      '-11': 'الگو متعلق به حساب شما نیست',
+      '-12': 'تعداد پارامترها اشتباه است',
+      '-13': 'پارامترها خیلی طولانی هستند',
+      '-14': 'فرمت شماره نامعتبر',
+      '-15': 'حساب تعلیق شده',
+      '-16': 'الگو تأیید نشده',
+      '-17': 'الگو رد شده',
+      '-18': 'الگو منقضی شده',
+      '-19': 'شماره برای این الگو مجاز نیست',
+      '-20': 'فرمت شماره اشتباه',
       '-110': 'نام کاربری یا رمز عبور اشتباه',
       '-120': 'اعتبار کافی نیست',
       '-130': 'شماره فرستنده نامعتبر',
@@ -402,6 +436,7 @@ const sendWarrantyApprovedSms = async ({
       success: false,
       skipped: false,
       reason: errorMessage,
+      code: codeStr,
       result: responseText,
     };
   } catch (error) {

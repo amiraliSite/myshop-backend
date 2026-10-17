@@ -140,18 +140,8 @@ async function sendSms(to, messageArgs) {
       };
     }
 
-    // Check credit before sending
-    const credit = await checkCredit();
-    if (credit !== null && credit < 100) {
-      console.warn(
-        `⚠️ اعتبار پیامک کم است: ${credit} تومان`,
-      );
-      return {
-        success: false,
-        error: `اعتبار پیامک کافی نیست (${credit} تومان). لطفاً حساب را شارژ کنید.`,
-        credit,
-      };
-    }
+    // اعتبار چک نمیشه چون پیامیتو حتی با اعتبار کم هم پیامک میفرسته
+    // اگه اعتبار واقعا کم باشه، خود پیامیتو کد -2 برمی‌گردونه
 
     const xml = buildSendByBaseNumberXml({
       username: USERNAME,

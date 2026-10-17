@@ -192,7 +192,6 @@ async function sendSms(to, messageArgs) {
       return {
         success: true,
         messageId: codeStr,
-        credit,
       };
     }
 
@@ -207,7 +206,6 @@ async function sendSms(to, messageArgs) {
       success: false,
       error: errorMessage,
       code: errorCode,
-      credit,
     };
   } catch (err) {
     console.error(

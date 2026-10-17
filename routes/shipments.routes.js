@@ -743,6 +743,7 @@ router.post('/', requireRole('admin'), (req, res) => {
       representativeName: receiver,
       representativeCode: cleanText(representative.code),
       representativeCity: cleanText(representative.city),
+      representativePhone: normalizeDigits(representative.phone) || TEST_PHONE_NUMBER,
       receiver,
       warehouse,
       shipmentDate,
@@ -870,21 +871,20 @@ router.patch('/:id/status', requireRole('admin'), async (req, res) => {
     const statusLabel = STATUS_LABELS[nextStatus] || nextStatus;
 
 
-    // خواندن نام و شماره نماینده از representatives.json
-    const representatives = readRepresentatives();
+    // اول شماره تلفن از خود بار (که موقع ثبت ذخیره شده)
+    // اگه نبود، از دیتابیس نماینده‌ها می‌خونیم
+    let representativePhone = normalizeDigits(updated.representativePhone) || '';
 
-
-    const representative = representatives.find((item) =>
-      sameValue(item.id, updated.representativeId),
-    );
-
+    if (!representativePhone) {
+      const representatives = readRepresentatives();
+      const representative = representatives.find((item) =>
+        sameValue(item.id, updated.representativeId),
+      );
+      representativePhone = normalizeDigits(representative?.phone) || TEST_PHONE_NUMBER;
+    }
 
     const representativeName =
-      cleanText(representative?.name) || 'مشتری';
-
-
-    const representativePhone =
-      normalizeDigits(representative?.phone) || TEST_PHONE_NUMBER;
+      cleanText(updated.representativeName) || 'مشتری';
 
 
     // 🔻🔻 تغییر اینجا انجام شده — شمارهٔ طولانی بار کوتاه شده 🔻🔻

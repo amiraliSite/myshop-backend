@@ -161,6 +161,9 @@ console.log(
 const allowedOrigins = [
   'https://yadakamir.netlify.app',
   'https://www.yadakamir.netlify.app',
+  'https://sofiyabahari465-tech.github.io',
+  'https://sofiyabahari465-tech.github.io/myshop-panel',
+  'https://amiraliSite.github.io',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   process.env.FRONTEND_URL,
@@ -195,7 +198,11 @@ const corsOptions = {
 
     if (
       !normalizedOrigin ||
-      allowedOrigins.includes(normalizedOrigin)
+      allowedOrigins.includes(normalizedOrigin) ||
+      normalizedOrigin.includes('github.io') ||
+      normalizedOrigin.includes('netlify.app') ||
+      normalizedOrigin.includes('vercel.app') ||
+      normalizedOrigin.includes('surge.sh')
     ) {
       callback(null, true);
       return;
